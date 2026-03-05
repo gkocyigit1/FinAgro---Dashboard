@@ -102,8 +102,7 @@ tr:hover td{background:rgba(255,255,255,.03);cursor:pointer;}
 .save-btn:hover{background:#2563eb;}
 .saved-msg{color:var(--green);font-size:11px;margin-left:8px;}
 /* Loading */
-#loadingOverlay{position:fixed;inset:0;background:rgba(15,17,23,.92);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;}
-#loadingOverlay.hidden{display:none;}
+
 .spinner{width:38px;height:38px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin-bottom:10px;}
 @keyframes spin{to{transform:rotate(360deg);}}
 #toast{position:fixed;bottom:18px;right:18px;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:9px 14px;font-size:12px;z-index:2000;opacity:0;transition:opacity .3s;pointer-events:none;}
@@ -135,12 +134,10 @@ tr:hover td{background:rgba(255,255,255,.03);cursor:pointer;}
   </div>
 </div>
 
-<div id="loadingOverlay">
-  <div class="spinner"></div>
-  <p style="color:var(--muted)">Yukleniyor...</p>
-</div>
 
-<div class="main" id="mainContent" style="display:none">
+
+
+<div class="main" id="mainContent">
 
   <div class="section-title">Yasal Takip Portfoyu</div>
   <div class="kpi-row" id="kpiYT"></div>
@@ -312,7 +309,7 @@ function renderAll(data){
   renderPrtList(data.prt_detay);
   $('metaInfo').textContent=(data.filename||'')+' | Son guncelleme: '+(data.son_guncelleme||'');
   $('mainContent').style.display='block';
-  $('loadingOverlay').classList.add('hidden');
+  
 }
 
 function renderKpiYT(k){
@@ -566,17 +563,17 @@ async function loadData(){
   try{
     var res=await fetch('/api/data');
     var data=await res.json();
-    if(data.error){$('loadingOverlay').querySelector('p').textContent=data.error;return;}
+    if(data.error){return;}
     renderAll(data);
   }catch(e){
-    $('loadingOverlay').querySelector('p').textContent='Baglanti hatasi: '+e.message;
+    
   }
 }
 
 $('fileInput').addEventListener('change',async function(){
   var file=this.files[0];if(!file)return;
-  $('loadingOverlay').classList.remove('hidden');
-  $('loadingOverlay').querySelector('p').textContent='Excel isleniyor...';
+  
+  void(0);
   var fd=new FormData();fd.append('file',file);
   try{
     var res=await fetch('/api/upload',{method:'POST',body:fd});
@@ -585,7 +582,7 @@ $('fileInput').addEventListener('change',async function(){
     renderAll(data);
     toast(file.name+' yuklendi!',3000);
   }catch(e){
-    $('loadingOverlay').classList.add('hidden');
+    
     toast('Hata: '+e.message,5000);
   }
   this.value='';
@@ -829,8 +826,8 @@ function renderFonTeminat(){
 // ── YÜKLEMELERi ─────────────────────────────────────────────
 $('cekInput').addEventListener('change', async function(){
   var file = this.files[0]; if(!file) return;
-  $('loadingOverlay').classList.remove('hidden');
-  $('loadingOverlay').querySelector('p').textContent = 'Çek/Senet işleniyor...';
+  
+  toast("Yükleniyor...", 30000);
   var fd = new FormData(); fd.append('file', file);
   try{
     var res  = await fetch('/api/upload/cek', {method:'POST', body:fd});
@@ -842,14 +839,14 @@ $('cekInput').addEventListener('change', async function(){
     $('cekViewBtn').textContent = '📋 ' + file.name.substring(0,20);
     toast(file.name + ' yüklendi!', 3000);
   } catch(e) { toast('Hata: '+e.message, 5000); }
-  $('loadingOverlay').classList.add('hidden');
+  
   this.value = '';
 });
 
 $('fonInput').addEventListener('change', async function(){
   var file = this.files[0]; if(!file) return;
-  $('loadingOverlay').classList.remove('hidden');
-  $('loadingOverlay').querySelector('p').textContent = 'Fon Raporu işleniyor...';
+  
+  
   var fd = new FormData(); fd.append('file', file);
   try{
     var res  = await fetch('/api/upload/fon', {method:'POST', body:fd});
@@ -862,7 +859,7 @@ $('fonInput').addEventListener('change', async function(){
     $('fonMeta').textContent = data.son_guncelleme || '';
     toast(file.name + ' yüklendi!', 3000);
   } catch(e) { toast('Hata: '+e.message, 5000); }
-  $('loadingOverlay').classList.add('hidden');
+  
   this.value = '';
 });
 
@@ -893,6 +890,8 @@ async function loadSideData(){
 
 loadData();
 loadSideData();
+
+
 </script>
 </body>
 </html>

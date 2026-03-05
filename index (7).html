@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FinAgro Risk Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+:root{--bg:#0f1117;--card:#1a1d27;--border:#2a2d3a;--text:#e8eaf0;--muted:#6b7280;--accent:#3b82f6;--green:#22c55e;--red:#ef4444;--yellow:#eab308;--orange:#f97316;--purple:#a855f7;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:Arial,sans-serif;font-size:13px;}
+.topbar{background:var(--card);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.logo{font-size:16px;font-weight:700;color:var(--accent);}
+.meta{color:var(--muted);font-size:11px;margin-top:2px;}
+.tabs{display:flex;gap:4px;margin-bottom:14px;border-bottom:1px solid var(--border);padding-bottom:0;}
+.tab{padding:7px 14px;border-radius:6px 6px 0 0;cursor:pointer;font-size:12px;font-weight:600;color:var(--muted);border:1px solid transparent;border-bottom:none;margin-bottom:-1px;}
+.tab.active{background:var(--card);color:var(--text);border-color:var(--border);}
+.tab:hover:not(.active){color:var(--text);}
+.tab-content{display:none;}
+.tab-content.active{display:block;}
+.search-bar{display:flex;gap:8px;margin-bottom:12px;align-items:center;}
+.search-bar input{flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:6px;font-size:12px;}
+.search-bar input:focus{outline:none;border-color:var(--accent);}
+.search-bar select{background:var(--bg);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:6px;font-size:12px;}
+.kpi-mini{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+.km{background:var(--bg);border-radius:8px;padding:8px 14px;min-width:120px;}
+.km-lbl{color:var(--muted);font-size:10px;margin-bottom:2px;}
+.km-val{font-size:16px;font-weight:700;}
+.upload-btn{background:var(--accent);color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;}
+.upload-btn:hover{filter:brightness(1.15);}
+.main{padding:16px 20px;max-width:1500px;margin:0 auto;}
+.section-title{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin:20px 0 10px;}
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px;}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;cursor:pointer;transition:border-color .2s;}
+.kpi:hover{border-color:var(--accent);}
+.kpi-lbl{color:var(--muted);font-size:10px;margin-bottom:4px;}
+.kpi-val{font-size:20px;font-weight:800;}
+.kpi-sub{color:var(--muted);font-size:10px;margin-top:3px;}
+.kpi.red .kpi-val{color:var(--red);}
+.kpi.green .kpi-val{color:var(--green);}
+.kpi.yellow .kpi-val{color:var(--yellow);}
+.kpi.blue .kpi-val{color:var(--accent);}
+.kpi.purple .kpi-val{color:var(--purple);}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px;}
+.card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;}
+.card-title{font-size:12px;font-weight:700;margin-bottom:12px;color:var(--text);}
+.hint{color:var(--muted);font-size:10px;margin-top:6px;}
+.list-item{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer;}
+.list-item:last-child{border-bottom:none;}
+.list-item:hover .li-name{color:var(--accent);}
+.li-name{font-weight:600;font-size:12px;}
+.li-meta{color:var(--muted);font-size:10px;margin-top:1px;}
+.li-val{font-weight:700;color:var(--accent);font-size:13px;}
+.avg-box{background:var(--bg);border-radius:8px;padding:10px 14px;text-align:center;margin-bottom:10px;}
+.avg-label{color:var(--muted);font-size:10px;}
+.avg-val{font-size:22px;font-weight:800;color:var(--orange);}
+.avg-sub{color:var(--muted);font-size:10px;}
+.alert-box{background:#1e1a2e;border-left:3px solid var(--purple);border-radius:6px;padding:9px 12px;margin-bottom:8px;font-size:12px;line-height:1.5;}
+.badge{display:inline-block;padding:1px 7px;border-radius:4px;font-size:10px;font-weight:700;}
+.badge.red{background:#3f1515;color:var(--red);}
+.badge.yellow{background:#3f3208;color:var(--yellow);}
+.badge.green{background:#0f3320;color:var(--green);}
+.badge.blue{background:#0f2540;color:var(--accent);}
+.badge.purple{background:#2d1a40;color:var(--purple);}
+.gauge-wrap{display:flex;flex-direction:column;align-items:center;padding:6px 0;}
+.gauge-score{font-size:44px;font-weight:900;margin-top:-8px;}
+.gauge-lbl{font-size:11px;}
+.risk-btn{margin-top:8px;background:transparent;border:1px solid var(--border);color:var(--muted);padding:4px 12px;border-radius:5px;cursor:pointer;font-size:11px;}
+.risk-btn:hover{border-color:var(--accent);color:var(--accent);}
+/* Modal */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:1000;backdrop-filter:blur(4px);}
+.overlay.hidden{display:none;}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:12px;width:92%;max-width:920px;max-height:88vh;display:flex;flex-direction:column;}
+.modal-head{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-shrink:0;}
+.modal-head h3{font-size:14px;}
+.modal-close{background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1;}
+.modal-close:hover{color:var(--text);}
+.modal-body{padding:14px 18px;overflow-y:auto;}
+.mstats{display:flex;gap:12px;margin-bottom:14px;flex-wrap:wrap;}
+.ms{background:var(--bg);border-radius:8px;padding:9px 14px;min-width:110px;}
+.ms-lbl{color:var(--muted);font-size:10px;margin-bottom:3px;}
+.ms-val{font-size:17px;font-weight:700;}
+table{width:100%;border-collapse:collapse;font-size:12px;}
+th{text-align:left;padding:7px 9px;color:var(--muted);border-bottom:1px solid var(--border);font-size:11px;white-space:nowrap;}
+td{padding:7px 9px;border-bottom:1px solid var(--border);vertical-align:top;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:rgba(255,255,255,.03);cursor:pointer;}
+.ta{text-align:right;font-weight:700;color:var(--accent);}
+.tm{color:var(--muted);}
+/* Not formu */
+.note-form{background:var(--bg);border-radius:8px;padding:14px;margin-bottom:14px;}
+.note-form-title{font-size:11px;font-weight:700;color:var(--muted);margin-bottom:10px;text-transform:uppercase;}
+.note-cols{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.note-col-title{font-size:11px;font-weight:700;color:var(--accent);margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--border);}
+.fg{display:flex;flex-direction:column;gap:3px;margin-bottom:8px;}
+.fg label{font-size:10px;color:var(--muted);}
+.fg input,.fg select,.fg textarea{background:var(--card);border:1px solid var(--border);color:var(--text);padding:6px 9px;border-radius:6px;font-size:12px;font-family:Arial,sans-serif;}
+.fg textarea{resize:vertical;min-height:70px;}
+.fg input:focus,.fg select:focus,.fg textarea:focus{outline:none;border-color:var(--accent);}
+.save-btn{background:var(--accent);color:#fff;border:none;padding:7px 18px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;}
+.save-btn:hover{background:#2563eb;}
+.saved-msg{color:var(--green);font-size:11px;margin-left:8px;}
+/* Loading */
+#loadingOverlay{position:fixed;inset:0;background:rgba(15,17,23,.92);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:50;pointer-events:none;}
+#loadingOverlay.hidden{display:none;}
+.spinner{width:38px;height:38px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin-bottom:10px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+#toast{position:fixed;bottom:18px;right:18px;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:9px 14px;font-size:12px;z-index:2000;opacity:0;transition:opacity .3s;pointer-events:none;}
+#toast.show{opacity:1;}
+@media(max-width:768px){.grid2,.grid3{grid-template-columns:1fr;}.note-cols{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div>
+    <div class="logo">FinAgro Risk Dashboard</div>
+    <div class="meta" id="metaInfo">Veri bekleniyor...</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+    <label class="upload-btn" style="background:#1e3a5f;border:1px solid #3b82f6;">
+      &#8679; Yasal Takip
+      <input type="file" id="fileInput" accept=".xlsx" style="display:none">
+    </label>
+    <label class="upload-btn" style="background:#1e3a2f;border:1px solid #22c55e;" id="cekBtnLabel">
+      &#8679; Çek / Senet
+      <input type="file" id="cekInput" accept=".xlsx" style="display:none">
+    </label>
+    <label class="upload-btn" style="background:#3a1e2f;border:1px solid #a855f7;" id="fonBtnLabel">
+      &#8679; Fon Raporu
+      <input type="file" id="fonInput" accept=".xlsx" style="display:none">
+    </label>
+    <button class="upload-btn" id="cekViewBtn" style="background:#0f3320;border:1px solid #22c55e;display:none" onclick="openCekModal()">📋 Çek / Senet</button>
+    <button class="upload-btn" id="fonViewBtn"  style="background:#2d1a40;border:1px solid #a855f7;display:none" onclick="openFonModal()">💰 Fon Raporu</button>
+  </div>
+</div>
+
+<div id="loadingOverlay" class="hidden">
+  <div class="spinner"></div>
+  <p style="color:var(--muted)">Yukleniyor...</p>
+</div>
+
+<div class="main" id="mainContent">
+
+  <div class="section-title">Yasal Takip Portfoyu</div>
+  <div class="kpi-row" id="kpiYT"></div>
+
+  <div class="section-title">Protesto Portfoyu</div>
+  <div class="kpi-row" id="kpiPRT"></div>
+
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Risk Skoru</div>
+      <div class="gauge-wrap">
+        <canvas id="gaugeChart" width="200" height="110"></canvas>
+        <div class="gauge-score" id="gaugeScore"></div>
+        <div class="gauge-lbl" id="gaugeLbl"></div>
+        <button class="risk-btn" onclick="showRiskDetail()">Detay Goster</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Uyarilar</div>
+      <div id="alertsBox"></div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Yasal Takip Yaslandirmasi (Tutar)</div>
+      <canvas id="ytYasChart" height="180"></canvas>
+      <div class="hint">Tikla - dosyalari gor</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Protesto Yaslandirmasi (Tutar)</div>
+      <canvas id="prtYasChart" height="180"></canvas>
+      <div class="hint">Tikla - dosyalari gor</div>
+    </div>
+  </div>
+
+  <div class="grid3">
+    <div class="card" style="text-align:center">
+      <div class="card-title">Ortalama Gecikme Suresi</div>
+      <div class="avg-box">
+        <div class="avg-label">Genel Ortalama</div>
+        <div class="avg-val" id="avgToplam">-</div>
+        <div class="avg-sub">gun</div>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <div style="flex:1;background:var(--bg);border-radius:8px;padding:8px;text-align:center">
+          <div style="color:var(--muted);font-size:10px">Yasal Takip</div>
+          <div style="font-size:18px;font-weight:700;color:var(--accent)" id="avgYT">-</div>
+          <div style="color:var(--muted);font-size:10px">gun</div>
+        </div>
+        <div style="flex:1;background:var(--bg);border-radius:8px;padding:8px;text-align:center">
+          <div style="color:var(--muted);font-size:10px">Protesto</div>
+          <div style="font-size:18px;font-weight:700;color:var(--purple)" id="avgPRT">-</div>
+          <div style="color:var(--muted);font-size:10px">gun</div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Aylik Trend</div>
+      <canvas id="trendChart" height="160"></canvas>
+      <div class="hint">Cubuga tikla - detay</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Banka Dagilimi</div>
+      <div id="bankaList"></div>
+    </div>
+  </div>
+
+  <div class="grid3">
+    <div class="card">
+      <div class="card-title">Bayi Bazinda Dagilim</div>
+      <div id="bayiList"></div>
+      <div class="hint">Tikla - detay</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Avukat Bazinda Dagilim</div>
+      <div id="avukatList"></div>
+      <div class="hint">Tikla - detay</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Protesto Senett Listesi</div>
+      <div id="prtList"></div>
+      <div class="hint">Tikla - detay</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Çek/Senet Modal -->
+<div class="overlay hidden" id="cekOverlay" onclick="if(event.target===this)closeCek()">
+  <div class="modal" style="max-width:1100px">
+    <div class="modal-head">
+      <h3>Çek / Senet Listesi <span id="cekMeta" style="color:var(--muted);font-size:11px;font-weight:400;margin-left:8px"></span></h3>
+      <button class="modal-close" onclick="closeCek()">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <div class="tabs">
+        <div class="tab active" onclick="cekTab('guncel',this)">Güncel</div>
+        <div class="tab" onclick="cekTab('sonuclanan',this)">Sonuçlanan</div>
+        <div class="tab" onclick="cekTab('teminat',this)">Teminat</div>
+      </div>
+      <div id="cekTabContent"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Fon Raporu Modal -->
+<div class="overlay hidden" id="fonOverlay" onclick="if(event.target===this)closeFon()">
+  <div class="modal" style="max-width:1100px">
+    <div class="modal-head">
+      <h3>Fon Raporu <span id="fonMeta" style="color:var(--muted);font-size:11px;font-weight:400;margin-left:8px"></span></h3>
+      <button class="modal-close" onclick="closeFon()">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <div class="tabs">
+        <div class="tab active" onclick="fonTab('limit',this)">Limit &amp; Risk</div>
+        <div class="tab" onclick="fonTab('bakiye',this)">Banka Bakiyeleri</div>
+        <div class="tab" onclick="fonTab('masraf',this)">Banka Masrafları</div>
+        <div class="tab" onclick="fonTab('teminat',this)">Teminat Mektupları</div>
+      </div>
+      <div id="fonTabContent"></div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay hidden" id="modalOverlay" onclick="closeModalOutside(event)">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="modalTitle"></h3>
+      <button class="modal-close" onclick="closeModal()">&#x2715;</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script>
+var APP = {};
+var ytYasInst=null, prtYasInst=null, trendInst=null, gaugeInst=null;
+
+function fmt(v){if(!v&&v!==0)return'-';v=parseFloat(v);if(isNaN(v))return'-';if(v>=1000000)return(v/1000000).toFixed(2)+'M &#8378;';if(v>=1000)return(v/1000).toFixed(1)+'K &#8378;';return v.toFixed(0)+' &#8378;';}
+function fmtF(v){if(!v&&v!==0)return'-';v=parseFloat(v);if(isNaN(v))return'-';return v.toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2})+' &#8378;';}
+function $(id){return document.getElementById(id);}
+function toast(m,d){var t=$('toast');t.innerHTML=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},d||3000);}
+function openModal(title,html){$('modalTitle').textContent=title;$('modalBody').innerHTML=html;$('modalOverlay').classList.remove('hidden');}
+function closeModal(){$('modalOverlay').classList.add('hidden');}
+function closeModalOutside(e){if(e.target===$('modalOverlay'))closeModal();}
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeModal();});
+
+function rCol(s){return s>=80?'#ef4444':s>=60?'#f97316':s>=40?'#eab308':'#22c55e';}
+function rLbl(s){return s>=80?'KRITIK RISK':s>=60?'YUKSEK RISK':s>=40?'ORTA RISK':'DUSUK RISK';}
+
+function renderAll(data){
+  APP=data;
+  var k=data.kpis;
+  renderKpiYT(k);
+  renderKpiPRT(k);
+  renderRisk(k);
+  renderAlerts(k);
+  renderYas('ytYasChart', data.yt_yaslandirma, ytYasInst, function(v){ytYasInst=v;});
+  renderYas('prtYasChart', data.prt_yaslandirma, prtYasInst, function(v){prtYasInst=v;});
+  $('avgToplam').textContent = k.toplam_avg_gun || '-';
+  $('avgYT').textContent     = k.yt_avg_gun || '-';
+  $('avgPRT').textContent    = k.prt_avg_gun || '-';
+  renderTrend(data.aylik_trend);
+  renderBanka(data.banka_risk);
+  renderBayi(data.bayi_risk);
+  renderAvukat(data.avukat_risk);
+  renderPrtList(data.prt_detay);
+  $('metaInfo').textContent=(data.filename||'')+' | Son guncelleme: '+(data.son_guncelleme||'');
+  $('mainContent').style.display='block';
+  $('loadingOverlay').classList.add('hidden');
+}
+
+function renderKpiYT(k){
+  var items=[
+    {lbl:'Toplam Portfoy',  val:fmt(k.yt_senet),          sub:'senet tutari',            cls:'blue',   fn:function(){showListModal('Tum YT Dosyalari',APP.yt_yaslandirma.flatMap(function(g){return g.detay||[]}));}},
+    {lbl:'Kalan Alacak',    val:fmt(k.yt_kalan),           sub:'tahsil edilecek',          cls:'red',    fn:function(){showListModal('Kalan Alacak',APP.yt_yaslandirma.flatMap(function(g){return g.detay||[]}));}},
+    {lbl:'Tahsil Edilen',   val:fmt(k.yt_odenen),          sub:'%'+k.tahsilat_orani+' oran', cls:'green',  fn:null},
+    {lbl:'Hic Odeme Yok',   val:k.hic_sayi+' dosya',       sub:fmt(k.hic_tutar),           cls:'red',    fn:function(){showHicOdemeModal(k);}},
+  ];
+  $('kpiYT').innerHTML=items.map(function(item,i){
+    return '<div class="kpi '+item.cls+'"'+(item.fn?' onclick="ytKpi('+i+')" style="cursor:pointer"':'')+'>'+
+      '<div class="kpi-lbl">'+item.lbl+'</div>'+
+      '<div class="kpi-val">'+item.val+'</div>'+
+      '<div class="kpi-sub">'+item.sub+'</div>'+
+      (item.fn?'<div class="hint">Tikla - detay</div>':'')+
+    '</div>';
+  }).join('');
+  window._ytKpi=items;
+}
+function ytKpi(i){var it=window._ytKpi;if(it[i]&&it[i].fn)it[i].fn();}
+
+function renderKpiPRT(k){
+  var items=[
+    {lbl:'Protesto Sayi',   val:k.prt_sayi+' dosya',       sub:'aktif protesto',           cls:'purple', fn:function(){showListModal('Protesto Listesi',APP.prt_detay);}},
+    {lbl:'Kalan Alacak',    val:fmt(k.prt_kalan),          sub:'tahsil edilecek',           cls:'yellow', fn:function(){showListModal('Protesto Kalan',APP.prt_detay);}},
+    {lbl:'Tahsil Edilen',   val:fmt(k.prt_odenen),         sub:'protesto tahsilat',         cls:'green',  fn:null},
+  ];
+  $('kpiPRT').innerHTML=items.map(function(item,i){
+    return '<div class="kpi '+item.cls+'"'+(item.fn?' onclick="prtKpi('+i+')" style="cursor:pointer"':'')+'>'+
+      '<div class="kpi-lbl">'+item.lbl+'</div>'+
+      '<div class="kpi-val">'+item.val+'</div>'+
+      '<div class="kpi-sub">'+item.sub+'</div>'+
+      (item.fn?'<div class="hint">Tikla - detay</div>':'')+
+    '</div>';
+  }).join('');
+  window._prtKpi=items;
+}
+function prtKpi(i){var it=window._prtKpi;if(it[i]&&it[i].fn)it[i].fn();}
+
+function showHicOdemeModal(k){
+  var html='<div class="mstats"><div class="ms"><div class="ms-lbl">Toplam Dosya</div><div class="ms-val">'+k.hic_sayi+'</div></div>';
+  html+='<div class="ms"><div class="ms-lbl">Toplam Tutar</div><div class="ms-val">'+fmt(k.hic_tutar)+'</div></div></div>';
+  html+=buildTable(APP.hic_detay,true);
+  openModal('Hic Odeme Yapilmamis - '+k.hic_sayi+' Dosya',html);
+}
+
+function renderRisk(k){
+  var s=k.risk_skoru||0;
+  var col=rCol(s);
+  $('gaugeScore').textContent=s;
+  $('gaugeScore').style.color=col;
+  $('gaugeLbl').textContent=rLbl(s);
+  $('gaugeLbl').style.color=col;
+  if(gaugeInst){gaugeInst.destroy();gaugeInst=null;}
+  var ctx=$('gaugeChart').getContext('2d');
+  gaugeInst=new Chart(ctx,{type:'doughnut',data:{datasets:[{data:[s/100,1-s/100],backgroundColor:[col,'#2a2d3a'],borderWidth:0,circumference:180,rotation:270}]},options:{cutout:'75%',plugins:{legend:{display:false},tooltip:{enabled:false}},animation:{duration:600}}});
+}
+
+function showRiskDetail(){
+  var rd=APP.kpis.risk_detay||{};
+  var nm={'kalan_oran':'Kalan Tutar Orani','hic_odeme':'Hic Odeme Yok','son90':'Son 90 Gun','yap_basarisiz':'Yapilandirma Bas.','bayi_yogun':'Bayi Yogunlasma','bolge_yogun':'Bolge Yogunlasma'};
+  var html='<table><thead><tr><th>Kriter</th><th>Puan</th><th>Max</th><th>Aciklama</th></tr></thead><tbody>';
+  for(var k in rd){var d=rd[k];var c=d.puan>=d.max*0.8?'var(--red)':d.puan>=d.max*0.5?'var(--yellow)':'var(--green)';html+='<tr><td>'+(nm[k]||k)+'</td><td style="color:'+c+';font-weight:700">'+d.puan+'</td><td class="tm">'+d.max+'</td><td class="tm">'+d.aciklama+'</td></tr>';}
+  html+='</tbody></table>';
+  openModal('Risk Skoru Detayi',html);
+}
+
+function renderAlerts(k){
+  var h='';
+  if(k.risk_skoru>=80)h+='<div class="alert-box"><span class="badge red">KRITIK</span> Risk skoru '+k.risk_skoru+'/100. Acil onlem gerekiyor.</div>';
+  else if(k.risk_skoru>=60)h+='<div class="alert-box"><span class="badge yellow">YUKSEK</span> Risk skoru '+k.risk_skoru+'/100.</div>';
+  if(k.hic_sayi>100)h+='<div class="alert-box"><span class="badge red">UYARI</span> '+k.hic_sayi+' dosyada hic odeme yapilmamis.</div>';
+  if(k.yap_bas>0)h+='<div class="alert-box"><span class="badge yellow">YAPILANDIRMA</span> '+k.yap_bas+' yapilandirma odenemiyor.</div>';
+  if(k.prt_sayi>0)h+='<div class="alert-box"><span class="badge purple">PROTESTO</span> '+k.prt_sayi+' aktif protesto, '+fmt(k.prt_kalan)+' kalan.</div>';
+  if(!h)h='<div class="alert-box"><span class="badge green">NORMAL</span> Kritik uyari yok.</div>';
+  $('alertsBox').innerHTML=h;
+}
+
+function renderYas(canvasId, data, inst, setInst){
+  if(inst)inst.destroy();
+  if(!data||!data.length)return;
+  var labels=data.map(function(d){return d.grup;});
+  var values=data.map(function(d){return d.tutar;});
+  var colors=['#22c55e','#84cc16','#eab308','#f97316','#ef4444','#dc2626'];
+  var ctx=$(canvasId).getContext('2d');
+  setInst(new Chart(ctx,{type:'bar',data:{labels:labels,datasets:[{data:values,backgroundColor:colors,borderRadius:4}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#6b7280',font:{size:10}}},y:{ticks:{color:'#6b7280',callback:function(v){return(v/1000000).toFixed(1)+'M';}}}},onClick:function(e,els){if(els.length){var i=els[0].index;showListModal(data[i].grup+' ('+data[i].sayi+' dosya)',data[i].detay);}}}}));
+}
+
+function renderTrend(data){
+  if(trendInst)trendInst.destroy();
+  var ctx=$('trendChart').getContext('2d');
+  trendInst=new Chart(ctx,{type:'bar',data:{labels:data.map(function(d){return d.ay;}),datasets:[{data:data.map(function(d){return d.tutar;}),backgroundColor:'rgba(59,130,246,.6)',borderColor:'#3b82f6',borderWidth:1,borderRadius:3}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#6b7280',font:{size:9}}},y:{ticks:{color:'#6b7280',callback:function(v){return(v/1000000).toFixed(1)+'M';}}}},onClick:function(e,els){if(els.length){var i=els[0].index;showListModal(data[i].ay+' ('+data[i].adet+' dosya)',data[i].detay);}}}});
+}
+
+function renderBanka(data){
+  if(!data||!data.length){$('bankaList').innerHTML='<p style="color:var(--muted)">Veri yok</p>';return;}
+  var total=data.reduce(function(s,d){return s+d.tutar;},0);
+  $('bankaList').innerHTML=data.slice(0,10).map(function(d){
+    var pct=total>0?(d.tutar/total*100).toFixed(1):0;
+    return '<div class="list-item"><div><div class="li-name">'+d.banka+'</div><div class="li-meta">%'+pct+'</div></div><div class="li-val">'+fmt(d.tutar)+'</div></div>';
+  }).join('');
+}
+
+function renderBayi(data){
+  if(!data||!data.length){$('bayiList').innerHTML='<p style="color:var(--muted)">Veri yok</p>';return;}
+  var total=data.reduce(function(s,d){return s+d.tutar;},0);
+  $('bayiList').innerHTML=data.slice(0,10).map(function(d,i){
+    var pct=total>0?(d.tutar/total*100).toFixed(1):0;
+    return '<div class="list-item" onclick="showBayiDetail('+i+')" ><div><div class="li-name">'+d.bayi+'</div><div class="li-meta">'+d.sayi+' dosya &middot; %'+pct+'</div></div><div class="li-val">'+fmt(d.tutar)+'</div></div>';
+  }).join('');
+}
+function showBayiDetail(i){
+  var d=APP.bayi_risk[i];
+  var html='<div class="mstats"><div class="ms"><div class="ms-lbl">Dosya</div><div class="ms-val">'+d.sayi+'</div></div><div class="ms"><div class="ms-lbl">Toplam</div><div class="ms-val">'+fmt(d.tutar)+'</div></div></div>';
+  html+=buildTable(d.detay,false);
+  openModal(d.bayi,html);
+}
+
+function renderAvukat(data){
+  if(!data||!data.length){$('avukatList').innerHTML='<p style="color:var(--muted)">AVUKAT ADI kolonu bulunamadi</p>';return;}
+  var total=data.reduce(function(s,d){return s+d.tutar;},0);
+  $('avukatList').innerHTML=data.map(function(d,i){
+    var pct=total>0?(d.tutar/total*100).toFixed(1):0;
+    return '<div class="list-item" onclick="showAvukatDetail('+i+')" ><div><div class="li-name">'+d.avukat+'</div><div class="li-meta">'+d.sayi+' dosya &middot; %'+pct+'</div></div><div class="li-val">'+fmt(d.tutar)+'</div></div>';
+  }).join('');
+}
+function showAvukatDetail(i){
+  var d=APP.avukat_risk[i];
+  var html='<div class="mstats"><div class="ms"><div class="ms-lbl">Dosya</div><div class="ms-val">'+d.sayi+'</div></div><div class="ms"><div class="ms-lbl">Toplam</div><div class="ms-val">'+fmt(d.tutar)+'</div></div></div>';
+  html+=buildTable(d.detay,true);
+  openModal(d.avukat,html);
+}
+
+function renderPrtList(data){
+  if(!data||!data.length){$('prtList').innerHTML='<p style="color:var(--muted)">Protesto verisi yok</p>';return;}
+  $('prtList').innerHTML=data.slice(0,8).map(function(d,i){
+    return '<div class="list-item" onclick="showNoteModal(\''+enc(d.kesideci)+'\',\''+enc(JSON.stringify(d))+'\')" >';+
+    '<div><div class="li-name">'+d.kesideci+'</div><div class="li-meta">'+d.bayi+' &middot; '+d.akibet+'</div></div>'+
+    '<div class="li-val">'+fmt(d.kalan)+'</div></div>';
+  }).join('');
+}
+
+function enc(s){return encodeURIComponent(s);}
+function dec(s){return decodeURIComponent(s);}
+
+function buildTable(detay, showBayi){
+  if(!detay||!detay.length)return '<p style="color:var(--muted)">Detay verisi yok</p>';
+  var notes=APP.notes||{};
+  var html='<table><thead><tr><th>#</th>';
+  if(showBayi)html+='<th>Bayi</th>';
+  html+='<th>Kesideci</th><th>Vade</th><th>Gecikme</th><th>Odenen</th><th>Kalan</th><th>Durum/Not</th></tr></thead><tbody>';
+  detay.forEach(function(d,i){
+    var n=notes[d.kesideci]||{};
+    var db=n.durum?'<span class="badge '+(n.durum==='Kapali'||n.durum==='Acik'&&false?'green':n.durum==='Acik'?'red':'blue')+'">'+n.durum+'</span>':'';
+    var opsN=n.ops_not?n.ops_not.substring(0,25)+(n.ops_not.length>25?'...':''):'';
+    html+='<tr onclick="showNoteModal(\''+enc(d.kesideci)+'\',\''+enc(JSON.stringify(d))+'\')">';
+    html+='<td class="tm">'+(i+1)+'</td>';
+    if(showBayi)html+='<td>'+d.bayi+'</td>';
+    html+='<td><strong>'+d.kesideci+'</strong></td>';
+    html+='<td class="tm">'+d.vade+'</td>';
+    html+='<td class="tm">'+(d.gun>0?d.gun+' g':'-')+'</td>';
+    html+='<td class="ta">'+fmtF(d.odenen)+'</td>';
+    html+='<td class="ta">'+fmtF(d.kalan)+'</td>';
+    html+='<td>'+db+(opsN?'<br><span style="color:var(--muted);font-size:10px">'+opsN+'</span>':'')+'</td>';
+    html+='</tr>';
+  });
+  html+='</tbody></table>';
+  return html;
+}
+
+function showListModal(title, detay){
+  openModal(title, buildTable(detay,true));
+}
+
+function showNoteModal(kEnc, dEnc){
+  var kesideci=dec(kEnc);
+  var d=JSON.parse(dec(dEnc));
+  var notes=APP.notes||{};
+  var n=notes[kesideci]||{};
+  var avukatlar=(APP.avukat_risk||[]).map(function(a){return '<option value="'+a.avukat+'"'+(n.avukat===a.avukat?' selected':'')+'>'+a.avukat+'</option>';}).join('');
+  var durumlar=['Acik','Kapali','Bekletiliyor','Ana Para Borcu Bitti','Iptal','Ihtiyati Haciz','Normal Haciz','Senetten Haciz'];
+  var durumOpts=durumlar.map(function(d2){return '<option value="'+d2+'"'+(n.durum===d2?' selected':'')+'>'+d2+'</option>';}).join('');
+
+  var html='<div class="mstats">';
+  html+='<div class="ms"><div class="ms-lbl">Kesideci</div><div class="ms-val" style="font-size:13px">'+kesideci+'</div></div>';
+  html+='<div class="ms"><div class="ms-lbl">Bayi</div><div class="ms-val" style="font-size:13px">'+d.bayi+'</div></div>';
+  html+='<div class="ms"><div class="ms-lbl">Odenen</div><div class="ms-val" style="color:var(--green)">'+fmtF(d.odenen)+'</div></div>';
+  html+='<div class="ms"><div class="ms-lbl">Kalan</div><div class="ms-val" style="color:var(--accent)">'+fmtF(d.kalan)+'</div></div>';
+  html+='<div class="ms"><div class="ms-lbl">Vade</div><div class="ms-val" style="font-size:13px">'+d.vade+'</div></div>';
+  if(d.gun>0)html+='<div class="ms"><div class="ms-lbl">Gecikme</div><div class="ms-val" style="color:var(--red)">'+d.gun+' gun</div></div>';
+  html+='</div>';
+  if(n.guncelleme)html+='<p style="color:var(--muted);font-size:10px;margin-bottom:10px">Son guncelleme: '+n.guncelleme+'</p>';
+
+  html+='<div class="note-form">';
+  html+='<div class="note-cols">';
+  // Operasyon notu
+  html+='<div>';
+  html+='<div class="note-col-title">Operasyon Gorusme Notu</div>';
+  html+='<div class="fg"><label>Son Gorusme Tarihi</label><input type="date" id="nf-son-gorusme" value="'+(n.son_gorusme||'')+'"></div>';
+  html+='<div class="fg"><label>Odeme Sozu Tarihi</label><input type="date" id="nf-odeme-sozu" value="'+(n.odeme_sozu||'')+'"></div>';
+  html+='<div class="fg"><label>Gorusme Notu</label><textarea id="nf-ops-not">'+(n.ops_not||'')+'</textarea></div>';
+  html+='</div>';
+  // Avukat notu
+  html+='<div>';
+  html+='<div class="note-col-title">Avukat Notu</div>';
+  html+='<div class="fg"><label>Avukat</label><select id="nf-avukat"><option value="">Secin</option>'+avukatlar+'</select></div>';
+  html+='<div class="fg"><label>Avukat Notu</label><textarea id="nf-avukat-not">'+(n.avukat_not||'')+'</textarea></div>';
+  html+='</div>';
+  html+='</div>';
+  // Ortak alanlar
+  html+='<div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">';
+  html+='<div class="fg"><label>Durum</label><select id="nf-durum"><option value="">Secin</option>'+durumOpts+'</select></div>';
+  html+='<div class="fg"><label>Odeme Tarihi</label><input type="date" id="nf-odeme-tarihi" value="'+(n.odeme_tarihi||'')+'"></div>';
+  html+='<div class="fg"><label>Odeme Tutari (TL)</label><input type="number" id="nf-odeme-tutari" value="'+(n.odeme_tutari||'')+'" placeholder="0.00"></div>';
+  html+='</div>';
+  html+='<div style="margin-top:10px">';
+  html+='<button class="save-btn" onclick="saveNote(\''+kEnc+'\')">Kaydet</button>';
+  html+='<span class="saved-msg" id="savedMsg"></span>';
+  html+='</div>';
+  html+='</div>';
+
+  openModal(kesideci+' - Not ve Takip', html);
+}
+
+function saveNote(kEnc){
+  var kesideci=dec(kEnc);
+  function gv(id){var el=$(id);return el?el.value:'';}
+  var data={
+    kesideci:     kesideci,
+    ops_not:      gv('nf-ops-not'),
+    avukat_not:   gv('nf-avukat-not'),
+    durum:        gv('nf-durum'),
+    avukat:       gv('nf-avukat'),
+    odeme_sozu:   gv('nf-odeme-sozu'),
+    son_gorusme:  gv('nf-son-gorusme'),
+    odeme_tarihi: gv('nf-odeme-tarihi'),
+    odeme_tutari: gv('nf-odeme-tutari'),
+  };
+  fetch('/api/notes/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)})
+    .then(function(r){return r.json();})
+    .then(function(){
+      if(!APP.notes)APP.notes={};
+      APP.notes[kesideci]=data;
+      var m=$('savedMsg');if(m){m.textContent='Kaydedildi!';setTimeout(function(){if(m)m.textContent='';},2000);}
+      toast('Not kaydedildi.',2000);
+    })
+    .catch(function(e){toast('Hata: '+e.message,3000);});
+}
+
+async function loadData(){
+  try{
+    var res=await fetch('/api/data');
+    var data=await res.json();
+    if(data.error){$('loadingOverlay').querySelector('p').textContent=data.error;return;}
+    renderAll(data);
+  }catch(e){
+    $('loadingOverlay').querySelector('p').textContent='Baglanti hatasi: '+e.message;
+  }
+}
+
+$('fileInput').addEventListener('change',async function(){
+  var file=this.files[0];if(!file)return;
+  $('loadingOverlay').classList.remove('hidden');
+  $('loadingOverlay').querySelector('p').textContent='Excel isleniyor...';
+  var fd=new FormData();fd.append('file',file);
+  try{
+    var res=await fetch('/api/upload',{method:'POST',body:fd});
+    var data=await res.json();
+    if(data.error)throw new Error(data.error);
+    renderAll(data);
+    toast(file.name+' yuklendi!',3000);
+  }catch(e){
+    $('loadingOverlay').classList.add('hidden');
+    toast('Hata: '+e.message,5000);
+  }
+  this.value='';
+});
+
+// ── ÇEK/SENET ────────────────────────────────────────────────
+var CEK_DATA = null;
+var _cekTab = 'guncel';
+
+function openCekModal(){
+  if(!CEK_DATA){toast('Önce Çek/Senet Excel yükleyin.',3000);return;}
+  $('cekOverlay').classList.remove('hidden');
+  renderCekTab(_cekTab);
+}
+function closeCek(){ $('cekOverlay').classList.add('hidden'); }
+
+function cekTab(name, el){
+  _cekTab = name;
+  document.querySelectorAll('#cekOverlay .tab').forEach(function(t){t.classList.remove('active');});
+  el.classList.add('active');
+  renderCekTab(name);
+}
+
+function renderCekTab(name){
+  if(!CEK_DATA) return;
+  var data = CEK_DATA[name];
+  if(!data){ $('cekTabContent').innerHTML='<p style="color:var(--muted)">Veri yok</p>'; return; }
+
+  var html = '<div class="kpi-mini">';
+  html += '<div class="km"><div class="km-lbl">Toplam Kayıt</div><div class="km-val">'+data.sayi+'</div></div>';
+  html += '<div class="km"><div class="km-lbl">Toplam Tutar</div><div class="km-val" style="color:var(--accent)">'+fmt(data.toplam)+'</div></div>';
+  if(data.banka_dagilim && data.banka_dagilim.length){
+    var topBanka = data.banka_dagilim[0];
+    html += '<div class="km"><div class="km-lbl">En Büyük Banka</div><div class="km-val" style="font-size:12px">'+topBanka.banka+'</div></div>';
+    html += '<div class="km"><div class="km-lbl">Banka Tutarı</div><div class="km-val">'+fmt(topBanka.tutar)+'</div></div>';
+  }
+  html += '</div>';
+
+  // Arama
+  html += '<div class="search-bar">';
+  html += '<input type="text" id="cekSearch" placeholder="Bayi, keşideci, banka ara..." oninput="filterCekTable()">';
+  html += '</div>';
+
+  html += '<div id="cekTableWrap">';
+  html += buildCekTable(data.rows, name);
+  html += '</div>';
+
+  $('cekTabContent').innerHTML = html;
+}
+
+function buildCekTable(rows, name, filter){
+  var filtered = filter ? rows.filter(function(r){
+    var q = filter.toLowerCase();
+    return (r.bayi||'').toLowerCase().includes(q) ||
+           (r.kesideci||'').toLowerCase().includes(q) ||
+           (r.banka||'').toLowerCase().includes(q) ||
+           (r.adres||'').toLowerCase().includes(q);
+  }) : rows;
+
+  if(!filtered.length) return '<p style="color:var(--muted);padding:10px 0">Sonuç bulunamadı.</p>';
+
+  var html = '<div style="color:var(--muted);font-size:10px;margin-bottom:6px">'+filtered.length+' kayıt gösteriliyor</div>';
+  html += '<table><thead><tr><th>#</th><th>Bayi</th><th>Kesideci</th><th>Banka</th><th>Vade</th><th>Tutar</th>';
+  if(name==='guncel') html += '<th>Fatura Durum</th><th>Kısmi Öd.</th>';
+  if(name==='sonuclanan') html += '<th>Tahsil</th><th>Protesto</th>';
+  if(name==='teminat') html += '<th>Açıklama</th>';
+  html += '</tr></thead><tbody>';
+
+  filtered.slice(0, 500).forEach(function(r, i){
+    html += '<tr>';
+    html += '<td class="tm">'+(i+1)+'</td>';
+    html += '<td>'+r.bayi+'</td>';
+    html += '<td>'+r.kesideci+'</td>';
+    html += '<td class="tm">'+r.banka+'</td>';
+    html += '<td class="tm">'+r.vade+'</td>';
+    html += '<td class="ta">'+fmtF(r.tutar)+'</td>';
+    if(name==='guncel'){
+      var fd = r.fatura_durum||'-';
+      var fdColor = fd.includes('Yapıldı')||fd.includes('Odendi')||fd.includes('YAPILDI') ? 'var(--green)' : fd==='-'?'var(--muted)':'var(--yellow)';
+      html += '<td style="font-size:11px;color:'+fdColor+'">'+fd+'</td>';
+      html += '<td class="tm">'+(r.kismi&&r.kismi!=='-'?'<span style="color:var(--yellow)">'+r.kismi+'</span>':'-')+'</td>';
+    }
+    if(name==='sonuclanan'){
+      html += '<td class="tm">'+(r.tahsil||'-')+'</td>';
+      html += '<td style="font-size:11px;color:var(--muted)">'+(r.protesto||'-')+'</td>';
+    }
+    if(name==='teminat') html += '<td class="tm">'+(r.aciklama||'-')+'</td>';
+    html += '</tr>';
+  });
+  if(filtered.length > 500) html += '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:10px">... '+( filtered.length-500)+' kayıt daha (arama yaparak filtreleyin)</td></tr>';
+  html += '</tbody></table>';
+  return html;
+}
+
+function filterCekTable(){
+  var q = $('cekSearch') ? $('cekSearch').value : '';
+  var data = CEK_DATA[_cekTab];
+  if(data && $('cekTableWrap')) $('cekTableWrap').innerHTML = buildCekTable(data.rows, _cekTab, q);
+}
+
+// ── FON RAPORU ────────────────────────────────────────────────
+var FON_DATA = null;
+var _fonTab = 'limit';
+
+function openFonModal(){
+  if(!FON_DATA){toast('Önce Fon Raporu Excel yükleyin.',3000);return;}
+  $('fonOverlay').classList.remove('hidden');
+  renderFonTab(_fonTab);
+}
+function closeFon(){ $('fonOverlay').classList.add('hidden'); }
+
+function fonTab(name, el){
+  _fonTab = name;
+  document.querySelectorAll('#fonOverlay .tab').forEach(function(t){t.classList.remove('active');});
+  el.classList.add('active');
+  renderFonTab(name);
+}
+
+function renderFonTab(name){
+  if(!FON_DATA){ $('fonTabContent').innerHTML='<p style="color:var(--muted)">Veri yok</p>'; return; }
+
+  if(name==='limit') renderFonLimit();
+  else if(name==='bakiye') renderFonBakiye();
+  else if(name==='masraf') renderFonMasraf();
+  else if(name==='teminat') renderFonTeminat();
+}
+
+function renderFonLimit(){
+  var d = FON_DATA.limit_risk;
+  if(!d||!d.rows||!d.rows.length){ $('fonTabContent').innerHTML='<p style="color:var(--muted)">Veri yok</p>'; return; }
+
+  var topNakit = d.rows.reduce(function(s,r){return s+r.nakit_kredi;},0);
+  var topCek   = d.rows.reduce(function(s,r){return s+r.cek_senet;},0);
+  var topLimit = d.rows.reduce(function(s,r){return s+r.limit;},0);
+
+  var html = '<div class="kpi-mini">';
+  html += '<div class="km"><div class="km-lbl">Tarih</div><div class="km-val" style="font-size:14px">'+(d.tarih||'-')+'</div></div>';
+  html += '<div class="km"><div class="km-lbl">Toplam Limit</div><div class="km-val" style="color:var(--accent)">'+fmt(topLimit)+'</div></div>';
+  html += '<div class="km"><div class="km-lbl">Toplam Nakit Kredi</div><div class="km-val" style="color:var(--yellow)">'+fmt(topNakit)+'</div></div>';
+  html += '<div class="km"><div class="km-lbl">Toplam Çek/Senet</div><div class="km-val" style="color:var(--purple)">'+fmt(topCek)+'</div></div>';
+  html += '</div>';
+
+  html += '<table><thead><tr><th>Banka</th><th>TL Bakiye</th><th>Limit</th><th>Nakit Kredi</th><th>Gayri Nakit</th><th>Limit Boşluğu</th><th>Çek &amp; Senet</th><th>Fazla/Marj</th><th>A.Para+Faiz</th></tr></thead><tbody>';
+  d.rows.forEach(function(r){
+    var bosluk_color = r.limit_boslugu > 0 ? 'var(--green)' : 'var(--red)';
+    html += '<tr>';
+    html += '<td><strong>'+r.banka+'</strong></td>';
+    html += '<td class="ta">'+(r.tl_bakiye?fmtF(r.tl_bakiye):'-')+'</td>';
+    html += '<td class="ta">'+fmtF(r.limit)+'</td>';
+    html += '<td class="ta" style="color:var(--yellow)">'+fmtF(r.nakit_kredi)+'</td>';
+    html += '<td class="ta">'+fmtF(r.gayri_nakit)+'</td>';
+    html += '<td class="ta" style="color:'+bosluk_color+'">'+fmtF(r.limit_boslugu)+'</td>';
+    html += '<td class="ta" style="color:var(--purple)">'+fmtF(r.cek_senet)+'</td>';
+    html += '<td class="tm" style="font-size:11px">'+r.fazla_marj+'</td>';
+    html += '<td class="ta">'+fmtF(r.ana_para_faiz)+'</td>';
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  $('fonTabContent').innerHTML = html;
+}
+
+function renderFonBakiye(){
+  var d = FON_DATA.banka_bakiyeleri;
+  if(!d||!d.rows||!d.rows.length){ $('fonTabContent').innerHTML='<p style="color:var(--muted)">Veri yok</p>'; return; }
+
+  var html = '<div class="kpi-mini">';
+  html += '<div class="km"><div class="km-lbl">Tarih</div><div class="km-val" style="font-size:14px">'+(d.tarih||'-')+'</div></div>';
+  html += '<div class="km"><div class="km-lbl">Toplam Bakiye</div><div class="km-val" style="color:var(--green)">'+fmt(d.toplam)+'</div></div>';
+  html += '</div>';
+
+  html += '<table><thead><tr><th>Banka</th><th>Şube</th><th>Devir</th><th>Giriş</th><th>Çıkış</th><th>Bakiye</th><th>Not</th></tr></thead><tbody>';
+  d.rows.forEach(function(r){
+    var bakCol = r.bakiye >= 0 ? 'var(--green)' : 'var(--red)';
+    html += '<tr>';
+    html += '<td><strong>'+r.banka+'</strong></td>';
+    html += '<td class="tm">'+r.sube+'</td>';
+    html += '<td class="ta">'+fmtF(r.devir)+'</td>';
+    html += '<td class="ta" style="color:var(--green)">'+fmtF(r.giris)+'</td>';
+    html += '<td class="ta" style="color:var(--red)">'+fmtF(r.cikis)+'</td>';
+    html += '<td class="ta" style="color:'+bakCol+';font-weight:800">'+fmtF(r.bakiye)+'</td>';
+    html += '<td style="font-size:10px;color:var(--muted)">'+r.not+'</td>';
+    html += '</tr>';
+  });
+  // Toplam satır
+  var topDevir = d.rows.reduce(function(s,r){return s+r.devir;},0);
+  var topGiris = d.rows.reduce(function(s,r){return s+r.giris;},0);
+  var topCikis = d.rows.reduce(function(s,r){return s+r.cikis;},0);
+  html += '<tr style="background:rgba(255,255,255,.05);font-weight:700">';
+  html += '<td colspan="2" style="color:var(--muted)">TOPLAM</td>';
+  html += '<td class="ta">'+fmtF(topDevir)+'</td>';
+  html += '<td class="ta" style="color:var(--green)">'+fmtF(topGiris)+'</td>';
+  html += '<td class="ta" style="color:var(--red)">'+fmtF(topCikis)+'</td>';
+  html += '<td class="ta" style="color:var(--green)">'+fmtF(d.toplam)+'</td>';
+  html += '<td></td></tr>';
+  html += '</tbody></table>';
+  $('fonTabContent').innerHTML = html;
+}
+
+function renderFonMasraf(){
+  var d = FON_DATA.banka_masraf;
+  if(!d||!d.rows||!d.rows.length){ $('fonTabContent').innerHTML='<p style="color:var(--muted)">Veri yok</p>'; return; }
+
+  var html = '<table><thead><tr><th>Banka</th><th>EFT Masrafı</th><th>Havale</th><th>Çek Takas</th><th>Çek İade</th><th>Senet</th><th>Senet İade</th><th>Dosya</th></tr></thead><tbody>';
+  d.rows.forEach(function(r){
+    html += '<tr><td><strong>'+r.banka+'</strong></td>';
+    html += '<td class="tm">'+r.eft+'</td><td class="tm">'+r.havale+'</td>';
+    html += '<td class="tm">'+r.cek_takas+'</td><td class="tm">'+r.cek_iade+'</td>';
+    html += '<td class="tm">'+r.senet+'</td><td class="tm">'+r.senet_iade+'</td>';
+    html += '<td class="tm">'+r.dosya+'</td></tr>';
+  });
+  html += '</tbody></table>';
+  $('fonTabContent').innerHTML = html;
+}
+
+function renderFonTeminat(){
+  var d = FON_DATA.teminat_mektuplari;
+  if(!d||!d.rows||!d.rows.length){ $('fonTabContent').innerHTML='<p style="color:var(--muted)">Veri yok</p>'; return; }
+
+  var html = '<div class="kpi-mini">';
+  html += '<div class="km"><div class="km-lbl">Toplam Adet</div><div class="km-val">'+d.rows.length+'</div></div>';
+  html += '<div class="km"><div class="km-lbl">Toplam Tutar</div><div class="km-val" style="color:var(--purple)">'+fmt(d.toplam)+'</div></div>';
+  html += '</div>';
+
+  html += '<table><thead><tr><th>#</th><th>Ad Soyad</th><th>Tarih</th><th>Banka</th><th>Referans</th><th>Numara</th><th>Tutar</th><th>Komisyon</th></tr></thead><tbody>';
+  d.rows.forEach(function(r,i){
+    html += '<tr>';
+    html += '<td class="tm">'+(i+1)+'</td>';
+    html += '<td><strong>'+r.ad+'</strong></td>';
+    html += '<td class="tm">'+r.tarih+'</td>';
+    html += '<td class="tm">'+r.banka+'</td>';
+    html += '<td style="font-size:10px;color:var(--muted)">'+r.referans+'</td>';
+    html += '<td style="font-size:10px;color:var(--muted)">'+r.numara+'</td>';
+    html += '<td class="ta" style="color:var(--purple)">'+fmtF(r.tutar)+'</td>';
+    html += '<td class="ta">'+fmtF(r.komisyon)+'</td>';
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  $('fonTabContent').innerHTML = html;
+}
+
+// ── YÜKLEMELERi ─────────────────────────────────────────────
+$('cekInput').addEventListener('change', async function(){
+  var file = this.files[0]; if(!file) return;
+  $('loadingOverlay').classList.remove('hidden');
+  $('loadingOverlay').querySelector('p').textContent = 'Çek/Senet işleniyor...';
+  var fd = new FormData(); fd.append('file', file);
+  try{
+    var res  = await fetch('/api/upload/cek', {method:'POST', body:fd});
+    var data = await res.json();
+    if(data.error) throw new Error(data.error);
+    CEK_DATA = data;
+    $('cekBtnLabel').style.display = 'none';
+    $('cekViewBtn').style.display  = 'inline-block';
+    $('cekViewBtn').textContent = '📋 ' + file.name.substring(0,20);
+    toast(file.name + ' yüklendi!', 3000);
+  } catch(e) { toast('Hata: '+e.message, 5000); }
+  $('loadingOverlay').classList.add('hidden');
+  this.value = '';
+});
+
+$('fonInput').addEventListener('change', async function(){
+  var file = this.files[0]; if(!file) return;
+  $('loadingOverlay').classList.remove('hidden');
+  $('loadingOverlay').querySelector('p').textContent = 'Fon Raporu işleniyor...';
+  var fd = new FormData(); fd.append('file', file);
+  try{
+    var res  = await fetch('/api/upload/fon', {method:'POST', body:fd});
+    var data = await res.json();
+    if(data.error) throw new Error(data.error);
+    FON_DATA = data;
+    $('fonBtnLabel').style.display = 'none';
+    $('fonViewBtn').style.display  = 'inline-block';
+    $('fonViewBtn').textContent = '💰 ' + file.name.substring(0,20);
+    $('fonMeta').textContent = data.son_guncelleme || '';
+    toast(file.name + ' yüklendi!', 3000);
+  } catch(e) { toast('Hata: '+e.message, 5000); }
+  $('loadingOverlay').classList.add('hidden');
+  this.value = '';
+});
+
+// Sayfa açılışında kayıtlı verileri kontrol et
+async function loadSideData(){
+  try{
+    var r1 = await fetch('/api/cek');
+    var c  = await r1.json();
+    if(!c.error && c.guncel){
+      CEK_DATA = c;
+      $('cekBtnLabel').style.display = 'none';
+      $('cekViewBtn').style.display  = 'inline-block';
+      $('cekViewBtn').textContent    = '📋 Çek / Senet';
+    }
+  } catch(e){}
+  try{
+    var r2 = await fetch('/api/fon');
+    var f  = await r2.json();
+    if(!f.error && f.limit_risk){
+      FON_DATA = f;
+      $('fonBtnLabel').style.display = 'none';
+      $('fonViewBtn').style.display  = 'inline-block';
+      $('fonViewBtn').textContent    = '💰 Fon Raporu';
+      $('fonMeta').textContent       = f.son_guncelleme || '';
+    }
+  } catch(e){}
+}
+
+loadData();
+loadSideData();
+</script>
+</body>
+</html>

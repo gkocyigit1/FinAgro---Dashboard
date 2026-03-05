@@ -12,9 +12,13 @@ except ImportError:
 
 PORT = int(os.environ.get("PORT", 5050))
 BASE = "/app" if os.path.exists("/app") else os.path.dirname(os.path.abspath(__file__))
-UPLOAD = os.path.join(BASE, "uploaded.xlsx")
-DFILE  = os.path.join(BASE, "latest_data.json")
-NFILE  = os.path.join(BASE, "notes.json")
+UPLOAD  = os.path.join(BASE, "uploaded.xlsx")
+DFILE   = os.path.join(BASE, "latest_data.json")
+NFILE   = os.path.join(BASE, "notes.json")
+CEK_FILE  = os.path.join(BASE, "uploaded_cek.xlsx")
+FON_FILE  = os.path.join(BASE, "uploaded_fon.xlsx")
+CEK_DFILE = os.path.join(BASE, "cek_data.json")
+FON_DFILE = os.path.join(BASE, "fon_data.json")
 
 def clean(obj):
     if isinstance(obj, float) and (math.isnan(obj) or math.isinf(obj)): return None
@@ -379,10 +383,6 @@ if __name__=='__main__':
     HTTPServer(('0.0.0.0',PORT),Handler).serve_forever()
 
 # ── EK PARSE FONKSİYONLARI ─────────────────────────────────────────────────
-CEK_FILE  = os.path.join(BASE, "uploaded_cek.xlsx")
-FON_FILE  = os.path.join(BASE, "uploaded_fon.xlsx")
-CEK_DFILE = os.path.join(BASE, "cek_data.json")
-FON_DFILE = os.path.join(BASE, "fon_data.json")
 
 
 def _ss(v):

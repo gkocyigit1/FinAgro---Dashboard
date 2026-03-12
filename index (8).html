@@ -1,0 +1,1293 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>FinAgro Risk Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --surface: #111827;
+    --surface2: #1a2236;
+    --border: #1f2d45;
+    --accent: #00c896;
+    --accent2: #0ea5e9;
+    --warn: #f59e0b;
+    --danger: #ef4444;
+    --text: #e2e8f0;
+    --text2: #94a3b8;
+    --text3: #475569;
+    --green: #10b981;
+    --red: #ef4444;
+    --gold: #f59e0b;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans', sans-serif; min-height:100vh; }
+  
+  /* LOGIN */
+  #loginScreen {
+    position:fixed; inset:0; background:var(--bg);
+    display:flex; align-items:center; justify-content:center; z-index:100;
+  }
+  .login-box {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:12px; padding:48px; width:380px;
+    box-shadow:0 0 80px rgba(0,200,150,0.08);
+  }
+  .login-logo { text-align:center; margin-bottom:32px; }
+  .login-logo .logo-mark {
+    display:inline-block; width:52px; height:52px; background:var(--accent);
+    border-radius:10px; margin-bottom:12px;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'IBM Plex Mono',monospace; font-weight:500; font-size:18px;
+    color:#0a0e1a; margin:0 auto 12px;
+  }
+  .login-logo h2 { font-size:22px; font-weight:600; letter-spacing:-0.5px; }
+  .login-logo p { color:var(--text2); font-size:13px; margin-top:4px; }
+  .login-field { margin-bottom:16px; }
+  .login-field label { display:block; font-size:12px; color:var(--text2); margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px; }
+  .login-field input {
+    width:100%; background:var(--bg); border:1px solid var(--border);
+    border-radius:8px; padding:12px 14px; color:var(--text);
+    font-family:'IBM Plex Sans',sans-serif; font-size:14px; outline:none;
+    transition:border-color 0.2s;
+  }
+  .login-field input:focus { border-color:var(--accent); }
+  .login-btn {
+    width:100%; background:var(--accent); color:#0a0e1a;
+    border:none; border-radius:8px; padding:13px;
+    font-family:'IBM Plex Sans',sans-serif; font-weight:600; font-size:14px;
+    cursor:pointer; margin-top:8px; transition:opacity 0.2s;
+  }
+  .login-btn:hover { opacity:0.88; }
+  .login-error { color:var(--danger); font-size:13px; margin-top:10px; text-align:center; display:none; }
+
+  /* APP */
+  #app { display:none; }
+  
+  /* HEADER */
+  .header {
+    background:var(--surface); border-bottom:1px solid var(--border);
+    padding:0 28px; height:58px;
+    display:flex; align-items:center; justify-content:space-between;
+    position:sticky; top:0; z-index:50;
+  }
+  .header-left { display:flex; align-items:center; gap:16px; }
+  .header-logo {
+    width:32px; height:32px; background:var(--accent); border-radius:6px;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'IBM Plex Mono',monospace; font-weight:500; font-size:13px; color:#0a0e1a;
+  }
+  .header-title { font-size:15px; font-weight:600; }
+  .header-sub { font-size:12px; color:var(--text2); }
+  .header-right { display:flex; align-items:center; gap:20px; }
+  .update-time { font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--text3); }
+  .update-time span { color:var(--accent); }
+  .logout-btn {
+    background:transparent; border:1px solid var(--border); color:var(--text2);
+    border-radius:6px; padding:6px 12px; font-size:12px; cursor:pointer;
+    font-family:'IBM Plex Sans',sans-serif; transition:all 0.2s;
+  }
+  .logout-btn:hover { border-color:var(--accent); color:var(--accent); }
+
+  /* NAV */
+  .nav {
+    background:var(--surface); border-bottom:1px solid var(--border);
+    padding:0 28px; display:flex; gap:4px;
+  }
+  .nav-btn {
+    background:transparent; border:none; color:var(--text2);
+    padding:14px 16px; font-size:13px; cursor:pointer;
+    font-family:'IBM Plex Sans',sans-serif; border-bottom:2px solid transparent;
+    transition:all 0.2s; white-space:nowrap;
+  }
+  .nav-btn:hover { color:var(--text); }
+  .nav-btn.active { color:var(--accent); border-bottom-color:var(--accent); }
+
+  /* MAIN */
+  .main { padding:24px 28px; max-width:1600px; }
+
+  /* UPLOAD SECTION */
+  .upload-section {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:10px; padding:20px 24px; margin-bottom:24px;
+  }
+  .upload-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+  .upload-header h3 { font-size:13px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; color:var(--text2); }
+  .upload-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+  .upload-card {
+    background:var(--bg); border:1px dashed var(--border);
+    border-radius:8px; padding:16px; cursor:pointer;
+    transition:all 0.2s; position:relative; overflow:hidden;
+  }
+  .upload-card:hover { border-color:var(--accent); }
+  .upload-card.loaded { border-color:var(--accent); border-style:solid; background:rgba(0,200,150,0.04); }
+  .upload-card input[type=file] { position:absolute; inset:0; opacity:0; cursor:pointer; }
+  .upload-card-title { font-size:12px; font-weight:600; color:var(--text2); margin-bottom:4px; }
+  .upload-card-status { font-size:11px; font-family:'IBM Plex Mono',monospace; }
+  .upload-card-status.ok { color:var(--accent); }
+  .upload-card-status.waiting { color:var(--text3); }
+  .upload-card-icon { font-size:18px; margin-bottom:8px; }
+
+  /* SECTION TITLE */
+  .section-title {
+    font-size:11px; font-weight:600; text-transform:uppercase;
+    letter-spacing:1px; color:var(--text3); margin-bottom:14px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .section-title::after { content:''; flex:1; height:1px; background:var(--border); }
+
+  /* KPI GRID */
+  .kpi-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:24px; }
+  .kpi-card {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:10px; padding:20px 22px;
+    transition:border-color 0.2s;
+  }
+  .kpi-card:hover { border-color:var(--border); }
+  .kpi-card.accent { border-left:3px solid var(--accent); }
+  .kpi-card.warn { border-left:3px solid var(--warn); }
+  .kpi-card.danger { border-left:3px solid var(--danger); }
+  .kpi-card.info { border-left:3px solid var(--accent2); }
+  .kpi-label { font-size:11px; color:var(--text2); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px; }
+  .kpi-value { font-size:24px; font-weight:600; font-family:'IBM Plex Mono',monospace; letter-spacing:-1px; }
+  .kpi-value.sm { font-size:18px; }
+  .kpi-sub { font-size:11px; color:var(--text3); margin-top:4px; font-family:'IBM Plex Mono',monospace; }
+  .kpi-change { font-size:11px; margin-top:6px; font-family:'IBM Plex Mono',monospace; }
+  .kpi-change.up { color:var(--green); }
+  .kpi-change.down { color:var(--red); }
+
+  /* TABLE */
+  .table-card {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:10px; overflow:hidden; margin-bottom:20px;
+  }
+  .table-card-header {
+    padding:14px 20px; border-bottom:1px solid var(--border);
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .table-card-header h3 { font-size:13px; font-weight:600; }
+  .table-card-header .badge {
+    font-size:11px; font-family:'IBM Plex Mono',monospace;
+    background:var(--bg); border:1px solid var(--border);
+    padding:3px 10px; border-radius:20px; color:var(--text2);
+  }
+  .table-wrap { overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; }
+  thead th {
+    text-align:left; padding:10px 16px;
+    font-size:11px; font-weight:600; color:var(--text3);
+    text-transform:uppercase; letter-spacing:0.4px;
+    background:var(--bg); border-bottom:1px solid var(--border);
+    white-space:nowrap;
+  }
+  tbody tr { border-bottom:1px solid rgba(31,45,69,0.5); transition:background 0.15s; }
+  tbody tr:hover { background:var(--surface2); }
+  tbody td { padding:10px 16px; font-size:13px; white-space:nowrap; }
+  tbody td.mono { font-family:'IBM Plex Mono',monospace; font-size:12px; }
+  .tag {
+    display:inline-block; padding:2px 8px; border-radius:4px;
+    font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:0.3px;
+  }
+  .tag-green { background:rgba(16,185,129,0.15); color:#10b981; }
+  .tag-red { background:rgba(239,68,68,0.15); color:#ef4444; }
+  .tag-warn { background:rgba(245,158,11,0.15); color:#f59e0b; }
+  .tag-blue { background:rgba(14,165,233,0.15); color:#0ea5e9; }
+  .tag-gray { background:rgba(71,85,105,0.2); color:#94a3b8; }
+
+  /* CHART CARDS */
+  .chart-row { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:20px; }
+  .chart-card {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:10px; padding:20px;
+  }
+  .chart-card h3 { font-size:13px; font-weight:600; margin-bottom:16px; color:var(--text); }
+  .chart-card canvas { max-height:220px; }
+
+  /* HAFTALIK KIYASLAMA */
+  .compare-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:20px; }
+  .compare-card {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:10px; padding:20px 24px;
+  }
+  .compare-card h3 { font-size:12px; font-weight:600; color:var(--text2); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:16px; }
+  .compare-row {
+    display:flex; justify-content:space-between; align-items:center;
+    padding:8px 0; border-bottom:1px solid rgba(31,45,69,0.5);
+  }
+  .compare-row:last-child { border-bottom:none; }
+  .compare-label { font-size:12px; color:var(--text2); }
+  .compare-vals { display:flex; gap:20px; align-items:center; }
+  .compare-val { font-family:'IBM Plex Mono',monospace; font-size:12px; }
+  .compare-val.old { color:var(--text3); }
+  .compare-val.new { color:var(--text); }
+  .compare-diff { font-family:'IBM Plex Mono',monospace; font-size:11px; }
+  .diff-up { color:var(--red); }
+  .diff-down { color:var(--green); }
+  .diff-neutral { color:var(--text3); }
+
+  /* TABS (sub) */
+  .sub-tabs { display:flex; gap:8px; margin-bottom:18px; }
+  .sub-tab {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:6px; padding:7px 14px;
+    font-size:12px; cursor:pointer; color:var(--text2);
+    font-family:'IBM Plex Sans',sans-serif; transition:all 0.2s;
+  }
+  .sub-tab.active { background:var(--accent); color:#0a0e1a; border-color:var(--accent); font-weight:600; }
+  .sub-tab:hover:not(.active) { border-color:var(--text3); color:var(--text); }
+
+  /* SUMMARY BOX */
+  .summary-box {
+    background:linear-gradient(135deg, rgba(0,200,150,0.06), rgba(14,165,233,0.04));
+    border:1px solid rgba(0,200,150,0.2); border-radius:10px; padding:20px 24px;
+    margin-bottom:20px;
+  }
+  .summary-box h3 { font-size:13px; font-weight:600; color:var(--accent); margin-bottom:12px; }
+  .summary-items { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+  .summary-item { }
+  .summary-item-label { font-size:11px; color:var(--text3); text-transform:uppercase; letter-spacing:0.4px; margin-bottom:4px; }
+  .summary-item-val { font-size:16px; font-weight:600; font-family:'IBM Plex Mono',monospace; }
+
+  /* EMPTY STATE */
+  .empty-state {
+    text-align:center; padding:60px 20px; color:var(--text3);
+  }
+  .empty-state .icon { font-size:40px; margin-bottom:12px; opacity:0.4; }
+  .empty-state p { font-size:13px; }
+
+  /* PAGE */
+  .page { display:none; }
+  .page.active { display:block; }
+
+  /* LIMIT BAR */
+  .limit-bar-wrap { margin-top:6px; }
+  .limit-bar-bg { background:var(--bg); border-radius:4px; height:6px; overflow:hidden; }
+  .limit-bar-fill { height:100%; border-radius:4px; transition:width 0.5s; }
+
+  /* BANKA TABLE */
+  .banka-row-total { background:rgba(0,200,150,0.05); font-weight:600; }
+
+  @media(max-width:1100px) {
+    .kpi-grid { grid-template-columns:repeat(2,1fr); }
+    .chart-row { grid-template-columns:1fr; }
+    .upload-grid { grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="logo-mark">FA</div>
+      <h2>FinAgro Dashboard</h2>
+      <p>Risk & Portföy Yönetim Paneli</p>
+    </div>
+    <div class="login-field">
+      <label>Kullanıcı Adı</label>
+      <input type="text" id="loginUser" placeholder="kullanıcı adı" autocomplete="username"/>
+    </div>
+    <div class="login-field">
+      <label>Şifre</label>
+      <input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password"/>
+    </div>
+    <button class="login-btn" onclick="doLogin()">Giriş Yap</button>
+    <div class="login-error" id="loginError">Kullanıcı adı veya şifre hatalı.</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="header">
+    <div class="header-left">
+      <div class="header-logo">FA</div>
+      <div>
+        <div class="header-title">FinAgro Risk Dashboard</div>
+        <div class="header-sub">Portföy & Risk Yönetim Paneli</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="update-time">Son Güncelleme: <span id="updateTimeDisplay">—</span></div>
+      <button class="logout-btn" onclick="doLogout()">Çıkış</button>
+    </div>
+  </div>
+
+  <div class="nav">
+    <button class="nav-btn active" onclick="showPage('ozet')">📊 Genel Özet</button>
+    <button class="nav-btn" onclick="showPage('ceksenet')">📋 Çek / Senet</button>
+    <button class="nav-btn" onclick="showPage('protesto')">⚠️ Protesto</button>
+    <button class="nav-btn" onclick="showPage('yasal')">⚖️ Yasal Takip</button>
+    <button class="nav-btn" onclick="showPage('fon')">🏦 Fon Durumu</button>
+    <button class="nav-btn" onclick="showPage('haftalik')">📅 Haftalık Karşılaştırma</button>
+    <button class="nav-btn" onclick="showPage('yukle')">📤 Excel Yükle</button>
+  </div>
+
+  <div class="main">
+
+    <!-- GENEL ÖZET -->
+    <div class="page active" id="page-ozet">
+      <div class="section-title">Genel Durum</div>
+      <div class="kpi-grid" id="ozetKpi">
+        <div class="empty-state" style="grid-column:span 4"><div class="icon">📂</div><p>Excel dosyalarını yükleyerek dashboard'u aktifleştirin.</p></div>
+      </div>
+      <div class="chart-row">
+        <div class="chart-card">
+          <h3>Portföy Dağılımı</h3>
+          <canvas id="chartPie"></canvas>
+        </div>
+        <div class="chart-card">
+          <h3>Banka Bazlı Limit Kullanımı</h3>
+          <canvas id="chartBar"></canvas>
+        </div>
+      </div>
+      <div class="section-title">Risk Özeti</div>
+      <div id="ozetRisk"></div>
+    </div>
+
+    <!-- ÇEK/SENET -->
+    <div class="page" id="page-ceksenet">
+      <div class="section-title">Çek &amp; Senet Portföyü</div>
+      <div class="kpi-grid" id="csKpi"></div>
+      <div class="sub-tabs">
+        <button class="sub-tab active" onclick="showSubTab('cs','guncel')">Güncel Portföy</button>
+        <button class="sub-tab" onclick="showSubTab('cs','vadeyaklaşan')">Vadesi Yaklaşan (7 gün)</button>
+        <button class="sub-tab" onclick="showSubTab('cs','vadegecmis')">Vadesi Geçmiş</button>
+      </div>
+      <div id="csTable"></div>
+    </div>
+
+    <!-- PROTESTO -->
+    <div class="page" id="page-protesto">
+      <div class="section-title">Protesto Senetler</div>
+      <div class="kpi-grid" id="prtKpi"></div>
+      <div id="prtTable"></div>
+    </div>
+
+    <!-- YASAL TAKİP -->
+    <div class="page" id="page-yasal">
+      <div class="section-title">Yasal Takip Dosyaları</div>
+      <div class="kpi-grid" id="yasalKpi"></div>
+      <div class="sub-tabs">
+        <button class="sub-tab active" onclick="showSubTab('yasal','aktif')">Aktif Dosyalar</button>
+        <button class="sub-tab" onclick="showSubTab('yasal','biten')">Tamamlanan</button>
+        <button class="sub-tab" onclick="showSubTab('yasal','prtod')">Protesto Ödenen</button>
+      </div>
+      <div id="yasalTable"></div>
+    </div>
+
+    <!-- FON DURUMU -->
+    <div class="page" id="page-fon">
+      <div class="section-title">Fon Durumu &amp; Banka Limitleri</div>
+      <div class="kpi-grid" id="fonKpi"></div>
+      <div class="sub-tabs">
+        <button class="sub-tab active" onclick="showSubTab('fon','limitrisk')">Limit &amp; Risk</button>
+        <button class="sub-tab" onclick="showSubTab('fon','bakiye')">Banka Bakiyeleri</button>
+        <button class="sub-tab" onclick="showSubTab('fon','teminat')">Teminat Mektupları</button>
+      </div>
+      <div id="fonTable"></div>
+    </div>
+
+    <!-- HAFTALIK KARŞILAŞTIRMA -->
+    <div class="page" id="page-haftalik">
+      <div class="section-title">Haftalık Karşılaştırma</div>
+      <div id="haftalikContent"></div>
+    </div>
+
+    <!-- EXCEL YÜKLE -->
+    <div class="page" id="page-yukle">
+      <div class="section-title">Excel Dosyaları Yükle</div>
+      <div class="upload-section">
+        <div class="upload-header">
+          <h3>Dosya Yükleme</h3>
+          <span style="font-size:11px;color:var(--text3)">Her dosya yüklendiğinde veriler otomatik güncellenir</span>
+        </div>
+        <div class="upload-grid">
+          <div class="upload-card" id="card-cs" onclick="document.getElementById('file-cs').click()">
+            <input type="file" id="file-cs" accept=".xlsx,.xls" onchange="loadFile('cs',this)"/>
+            <div class="upload-card-icon">📋</div>
+            <div class="upload-card-title">Çek &amp; Senet Listesi</div>
+            <div class="upload-card-status waiting" id="status-cs">Dosya bekleniyor…</div>
+          </div>
+          <div class="upload-card" id="card-prt" onclick="document.getElementById('file-prt').click()">
+            <input type="file" id="file-prt" accept=".xlsx,.xls" onchange="loadFile('prt',this)"/>
+            <div class="upload-card-icon">⚠️</div>
+            <div class="upload-card-title">Protesto &amp; Yasal Takip</div>
+            <div class="upload-card-status waiting" id="status-prt">Dosya bekleniyor…</div>
+          </div>
+          <div class="upload-card" id="card-fon" onclick="document.getElementById('file-fon').click()">
+            <input type="file" id="file-fon" accept=".xlsx,.xls" onchange="loadFile('fon',this)"/>
+            <div class="upload-card-icon">🏦</div>
+            <div class="upload-card-title">Fon Bilgileri</div>
+            <div class="upload-card-status waiting" id="status-fon">Dosya bekleniyor…</div>
+          </div>
+        </div>
+      </div>
+      <div class="upload-section" style="margin-top:16px">
+        <div class="upload-header"><h3>Haftalık Snapshot</h3></div>
+        <p style="font-size:13px;color:var(--text2);margin-bottom:14px">Her hafta mevcut verilerin anlık görüntüsünü kaydedin. Haftalık Karşılaştırma sekmesinde önceki haftayla kıyaslanır.</p>
+        <button onclick="saveSnapshot()" style="background:var(--accent);color:#0a0e1a;border:none;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;font-family:'IBM Plex Sans',sans-serif">
+          📸 Bu Haftanın Snapshot'ını Kaydet
+        </button>
+        <div id="snapshotStatus" style="font-size:12px;color:var(--text3);margin-top:10px"></div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<script>
+// ========== AUTH ==========
+const USERS = { 'finagro': 'finagro2024', 'yonetim': 'finagro2024', 'admin': 'admin123' };
+
+function doLogin() {
+  const u = document.getElementById('loginUser').value.trim();
+  const p = document.getElementById('loginPass').value;
+  if (USERS[u] && USERS[u] === p) {
+    sessionStorage.setItem('fa_auth', '1');
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    initApp();
+  } else {
+    document.getElementById('loginError').style.display = 'block';
+  }
+}
+document.getElementById('loginPass').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+document.getElementById('loginUser').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+function doLogout() {
+  sessionStorage.removeItem('fa_auth');
+  location.reload();
+}
+
+// ========== STATE ==========
+let DATA = { cs: null, prt: null, fon: null };
+let lastUpdate = null;
+let currentCsTab = 'guncel';
+let currentYasalTab = 'aktif';
+let currentFonTab = 'limitrisk';
+
+// ========== INIT ==========
+function initApp() {
+  loadFromStorage();
+  updateClock();
+  setInterval(updateClock, 1000);
+}
+
+function updateClock() {
+  const now = new Date();
+  const str = now.toLocaleDateString('tr-TR') + ' ' + now.toLocaleTimeString('tr-TR');
+  document.getElementById('updateTimeDisplay').textContent = lastUpdate
+    ? new Date(lastUpdate).toLocaleDateString('tr-TR') + ' ' + new Date(lastUpdate).toLocaleTimeString('tr-TR')
+    : '—';
+}
+
+// ========== STORAGE ==========
+function saveToStorage() {
+  try {
+    const payload = { data: DATA, ts: Date.now() };
+    localStorage.setItem('fa_data', JSON.stringify(payload));
+    lastUpdate = payload.ts;
+  } catch(e) { console.warn('Storage full:', e); }
+}
+
+function loadFromStorage() {
+  try {
+    const raw = localStorage.getItem('fa_data');
+    if (raw) {
+      const payload = JSON.parse(raw);
+      DATA = payload.data;
+      lastUpdate = payload.ts;
+      renderAll();
+    }
+  } catch(e) { console.warn('Load error:', e); }
+}
+
+// ========== SNAPSHOT ==========
+function saveSnapshot() {
+  if (!DATA.cs && !DATA.prt && !DATA.fon) {
+    document.getElementById('snapshotStatus').textContent = '⚠️ Önce Excel dosyalarını yükleyin.';
+    return;
+  }
+  const snap = buildMetrics();
+  const snapKey = 'fa_snap_' + getWeekKey();
+  localStorage.setItem(snapKey, JSON.stringify({ ts: Date.now(), metrics: snap }));
+  document.getElementById('snapshotStatus').textContent = '✓ Snapshot kaydedildi: ' + new Date().toLocaleDateString('tr-TR');
+  renderHaftalik();
+}
+
+function getWeekKey() {
+  const now = new Date();
+  const jan1 = new Date(now.getFullYear(), 0, 1);
+  const week = Math.ceil(((now - jan1) / 86400000 + jan1.getDay() + 1) / 7);
+  return now.getFullYear() + '_W' + week;
+}
+
+function getPrevWeekKey() {
+  const now = new Date();
+  now.setDate(now.getDate() - 7);
+  const jan1 = new Date(now.getFullYear(), 0, 1);
+  const week = Math.ceil(((now - jan1) / 86400000 + jan1.getDay() + 1) / 7);
+  return now.getFullYear() + '_W' + week;
+}
+
+// ========== FILE LOADING ==========
+function loadFile(type, input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'array', cellDates: true });
+      if (type === 'cs') {
+        DATA.cs = parseCeksenet(wb);
+        document.getElementById('status-cs').textContent = '✓ ' + file.name;
+        document.getElementById('status-cs').className = 'upload-card-status ok';
+        document.getElementById('card-cs').classList.add('loaded');
+      } else if (type === 'prt') {
+        DATA.prt = parseProtestoYasal(wb);
+        document.getElementById('status-prt').textContent = '✓ ' + file.name;
+        document.getElementById('status-prt').className = 'upload-card-status ok';
+        document.getElementById('card-prt').classList.add('loaded');
+      } else if (type === 'fon') {
+        DATA.fon = parseFon(wb);
+        document.getElementById('status-fon').textContent = '✓ ' + file.name;
+        document.getElementById('status-fon').className = 'upload-card-status ok';
+        document.getElementById('card-fon').classList.add('loaded');
+      }
+      lastUpdate = Date.now();
+      saveToStorage();
+      renderAll();
+    } catch(err) {
+      alert('Dosya okunurken hata: ' + err.message);
+      console.error(err);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// ========== PARSERS ==========
+function sheetToRows(wb, sheetName) {
+  const ws = wb.Sheets[sheetName];
+  if (!ws) return [];
+  return XLSX.utils.sheet_to_json(ws, { defval: null, raw: false });
+}
+
+function sheetToRowsRaw(wb, sheetName) {
+  const ws = wb.Sheets[sheetName];
+  if (!ws) return [];
+  return XLSX.utils.sheet_to_json(ws, { defval: null, header: 1 });
+}
+
+function parseCeksenet(wb) {
+  const guncel = sheetToRows(wb, 'Güncel Çek&Senet');
+  const sonuc = sheetToRows(wb, 'Sonuçlanan Çek&Senet');
+  return { guncel, sonuc };
+}
+
+function parseProtestoYasal(wb) {
+  const prtRows = sheetToRowsRaw(wb, 'PROTESTO');
+  // header is row index 1 (0-based)
+  let prtData = [];
+  if (prtRows.length > 2) {
+    const header = prtRows[1];
+    for (let i = 2; i < prtRows.length; i++) {
+      const row = prtRows[i];
+      if (!row[0] || isNaN(parseInt(row[0]))) continue;
+      const obj = {};
+      header.forEach((h,idx) => { if(h) obj[h] = row[idx]; });
+      prtData.push(obj);
+    }
+  }
+  const yasal = sheetToRows(wb, 'YASAL TAKİP');
+  const yasalBiten = sheetToRows(wb, 'YASAL TAKİP BİTENLER');
+  const prtOd25 = sheetToRows(wb, '2025 PRT-ÖD.');
+  const prtOd24 = sheetToRows(wb, '2024 PRT. ÖD.');
+  return { prt: prtData, yasal, yasalBiten, prtOd: [...(prtOd25||[]), ...(prtOd24||[])] };
+}
+
+function parseFon(wb) {
+  const limitRisk = sheetToRowsRaw(wb, 'LİMİT-RİSK');
+  const bakiye = sheetToRowsRaw(wb, 'BANKA BAKİYELERİ');
+  const teminat = sheetToRows(wb, 'TEMİNAT MEKTUPLARI');
+  const hareketler = sheetToRowsRaw(wb, 'BANKA HAREKETLERİ');
+  return { limitRisk, bakiye, teminat, hareketler };
+}
+
+// ========== NUMBER HELPERS ==========
+function toNum(v) {
+  if (v === null || v === undefined || v === '' || v === '-') return 0;
+  if (typeof v === 'number') return v;
+  const s = String(v).replace(/[^\d.,\-]/g,'').replace(',','.');
+  return parseFloat(s) || 0;
+}
+
+function fmt(n, decimals=0) {
+  if (!n && n !== 0) return '—';
+  return Number(n).toLocaleString('tr-TR', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+}
+
+function fmtTL(n) { return fmt(n) + ' ₺'; }
+
+// ========== METRICS ==========
+function buildMetrics() {
+  const m = {
+    // CS
+    csGuncelCount: 0, csGuncelTutar: 0,
+    csVadeYaklaşan: 0, csVadeGeçmiş: 0,
+    // PRT
+    prtCount: 0, prtKalan: 0,
+    // YASAL
+    yasalCount: 0, yasalKalan: 0,
+    // FON
+    toplamLimit: 0, toplamRisk: 0, toplamBossluk: 0, toplamBakiye: 0,
+  };
+
+  const now = new Date();
+  const in7 = new Date(now.getTime() + 7*86400000);
+
+  if (DATA.cs) {
+    (DATA.cs.guncel || []).forEach(r => {
+      const tutar = toNum(r['TUTAR-TL']);
+      m.csGuncelCount++;
+      m.csGuncelTutar += tutar;
+      const vade = r['VADE TARİHİ'] ? new Date(r['VADE TARİHİ']) : null;
+      if (vade) {
+        if (vade < now) m.csVadeGeçmiş += tutar;
+        else if (vade <= in7) m.csVadeYaklaşan += tutar;
+      }
+    });
+  }
+
+  if (DATA.prt) {
+    (DATA.prt.prt || []).forEach(r => {
+      m.prtCount++;
+      m.prtKalan += toNum(r['KALAN TUTAR']);
+    });
+    (DATA.prt.yasal || []).forEach(r => {
+      const kalan = toNum(r['KALAN TUTAR']);
+      if (kalan > 0) { m.yasalCount++; m.yasalKalan += kalan; }
+    });
+  }
+
+  if (DATA.fon && DATA.fon.limitRisk) {
+    DATA.fon.limitRisk.forEach(row => {
+      if (!row || !row[0]) return;
+      const label = String(row[0]).trim();
+      if (label === 'TL TOPLAM ') {
+        m.toplamLimit = toNum(row[2]);
+        m.toplamRisk = toNum(row[3]);
+        m.toplamBossluk = toNum(row[5]);
+        m.toplamBakiye = toNum(row[1]);
+      }
+    });
+  }
+
+  return m;
+}
+
+// ========== RENDER ALL ==========
+function renderAll() {
+  renderOzet();
+  renderCeksenet('guncel');
+  renderProtesto();
+  renderYasal('aktif');
+  renderFon('limitrisk');
+  renderHaftalik();
+}
+
+// ========== RENDER ÖZET ==========
+function renderOzet() {
+  const m = buildMetrics();
+  const hasData = DATA.cs || DATA.prt || DATA.fon;
+  const kpiEl = document.getElementById('ozetKpi');
+
+  if (!hasData) {
+    kpiEl.innerHTML = '<div class="empty-state" style="grid-column:span 4"><div class="icon">📂</div><p>Excel dosyalarını yükleyerek dashboard\'u aktifleştirin.</p></div>';
+    return;
+  }
+
+  kpiEl.innerHTML = `
+    <div class="kpi-card accent">
+      <div class="kpi-label">Aktif Portföy (Çek/Senet)</div>
+      <div class="kpi-value sm">${fmtTL(m.csGuncelTutar)}</div>
+      <div class="kpi-sub">${fmt(m.csGuncelCount)} adet kayıt</div>
+    </div>
+    <div class="kpi-card warn">
+      <div class="kpi-label">Protesto Kalan Tutar</div>
+      <div class="kpi-value sm">${fmtTL(m.prtKalan)}</div>
+      <div class="kpi-sub">${fmt(m.prtCount)} adet protesto</div>
+    </div>
+    <div class="kpi-card danger">
+      <div class="kpi-label">Yasal Takip Kalan</div>
+      <div class="kpi-value sm">${fmtTL(m.yasalKalan)}</div>
+      <div class="kpi-sub">${fmt(m.yasalCount)} aktif dosya</div>
+    </div>
+    <div class="kpi-card info">
+      <div class="kpi-label">Toplam Limit Boşluğu</div>
+      <div class="kpi-value sm">${fmtTL(m.toplamBossluk)}</div>
+      <div class="kpi-sub">Limit: ${fmtTL(m.toplamLimit)}</div>
+    </div>
+  `;
+
+  // Pie chart
+  renderPieChart(m);
+  renderBarChart();
+  renderOzetRisk(m);
+}
+
+function renderPieChart(m) {
+  const ctx = document.getElementById('chartPie');
+  if (!ctx) return;
+  if (ctx._chart) ctx._chart.destroy();
+  const total = m.csGuncelTutar + m.prtKalan + m.yasalKalan;
+  if (!total) return;
+  ctx._chart = new Chart(ctx, {
+    type:'doughnut',
+    data:{
+      labels:['Güncel Portföy','Protesto','Yasal Takip'],
+      datasets:[{
+        data:[m.csGuncelTutar, m.prtKalan, m.yasalKalan],
+        backgroundColor:['rgba(0,200,150,0.8)','rgba(245,158,11,0.8)','rgba(239,68,68,0.8)'],
+        borderColor:['#00c896','#f59e0b','#ef4444'],
+        borderWidth:2
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:true,
+      plugins:{
+        legend:{ labels:{ color:'#94a3b8', font:{family:'IBM Plex Sans',size:11} } }
+      }
+    }
+  });
+}
+
+function renderBarChart() {
+  const ctx = document.getElementById('chartBar');
+  if (!ctx) return;
+  if (ctx._chart) ctx._chart.destroy();
+  if (!DATA.fon || !DATA.fon.limitRisk) return;
+
+  const banks = []; const limits = []; const risks = [];
+  DATA.fon.limitRisk.forEach(row => {
+    if (!row || !row[0]) return;
+    const label = String(row[0]).trim();
+    if (label === 'TL TOPLAM ' || !row[2] || toNum(row[2]) === 0) return;
+    if (['PORTFÖY SENET','PORTFÖY ÇEK '].includes(label)) return;
+    const limit = toNum(row[2]);
+    const risk = toNum(row[3]);
+    if (limit > 0) {
+      const shortName = label.replace(' T.A.Ş.','').replace(' A.Ş.','').replace(' A.O.','').replace(' FAKTORİNG','').trim();
+      banks.push(shortName); limits.push(limit/1000000); risks.push(risk/1000000);
+    }
+  });
+
+  ctx._chart = new Chart(ctx, {
+    type:'bar',
+    data:{
+      labels: banks,
+      datasets:[
+        { label:'Limit (M₺)', data:limits, backgroundColor:'rgba(14,165,233,0.3)', borderColor:'#0ea5e9', borderWidth:1 },
+        { label:'Risk (M₺)', data:risks, backgroundColor:'rgba(0,200,150,0.6)', borderColor:'#00c896', borderWidth:1 }
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:true,
+      plugins:{ legend:{ labels:{ color:'#94a3b8', font:{family:'IBM Plex Sans',size:11} } } },
+      scales:{
+        x:{ ticks:{ color:'#475569', font:{size:10} }, grid:{ color:'rgba(31,45,69,0.5)' } },
+        y:{ ticks:{ color:'#475569', font:{size:10}, callback: v => v+'M' }, grid:{ color:'rgba(31,45,69,0.5)' } }
+      }
+    }
+  });
+}
+
+function renderOzetRisk(m) {
+  const el = document.getElementById('ozetRisk');
+  const vadeyaklaşan = m.csVadeYaklaşan;
+  const vadegeçmiş = m.csVadeGeçmiş;
+  el.innerHTML = `
+    <div class="summary-box">
+      <h3>⚡ Bu Haftanın Risk Göstergesi</h3>
+      <div class="summary-items">
+        <div class="summary-item">
+          <div class="summary-item-label">Vadesi Yaklaşan (7 gün)</div>
+          <div class="summary-item-val" style="color:var(--warn)">${fmtTL(vadeyaklaşan)}</div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-item-label">Vadesi Geçmiş</div>
+          <div class="summary-item-val" style="color:var(--danger)">${fmtTL(vadegeçmiş)}</div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-item-label">Toplam Sorunlu Tutar</div>
+          <div class="summary-item-val" style="color:var(--danger)">${fmtTL(m.prtKalan + m.yasalKalan)}</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ========== ÇEK/SENET ==========
+function renderCeksenet(tab) {
+  currentCsTab = tab;
+  const kpi = document.getElementById('csKpi');
+  const tableEl = document.getElementById('csTable');
+  if (!DATA.cs) {
+    kpi.innerHTML = '<div class="empty-state" style="grid-column:span 4"><p>Çek/Senet dosyası yüklenmedi.</p></div>';
+    tableEl.innerHTML = ''; return;
+  }
+
+  const rows = DATA.cs.guncel || [];
+  const now = new Date();
+  const in7 = new Date(now.getTime() + 7*86400000);
+
+  let toplamTutar = 0, vadeyaklaşan = 0, vadeGeçmiş = 0, tahsil = 0;
+  rows.forEach(r => {
+    const tutar = toNum(r['TUTAR-TL']);
+    toplamTutar += tutar;
+    const vade = r['VADE TARİHİ'] ? new Date(r['VADE TARİHİ']) : null;
+    if (vade) {
+      if (vade < now) vadeGeçmiş += tutar;
+      else if (vade <= in7) vadeyaklaşan += tutar;
+    }
+    if (r['HESAPTAN TAHSİL']) tahsil += tutar;
+  });
+
+  kpi.innerHTML = `
+    <div class="kpi-card accent">
+      <div class="kpi-label">Toplam Portföy</div>
+      <div class="kpi-value sm">${fmtTL(toplamTutar)}</div>
+      <div class="kpi-sub">${rows.length} adet</div>
+    </div>
+    <div class="kpi-card warn">
+      <div class="kpi-label">Vadesi Yaklaşan (7 gün)</div>
+      <div class="kpi-value sm">${fmtTL(vadeyaklaşan)}</div>
+    </div>
+    <div class="kpi-card danger">
+      <div class="kpi-label">Vadesi Geçmiş</div>
+      <div class="kpi-value sm">${fmtTL(vadeGeçmiş)}</div>
+    </div>
+    <div class="kpi-card info">
+      <div class="kpi-label">Hesaptan Tahsil</div>
+      <div class="kpi-value sm">${fmtTL(tahsil)}</div>
+    </div>
+  `;
+
+  let filtered = rows;
+  if (tab === 'vadeyaklaşan') {
+    filtered = rows.filter(r => {
+      const vade = r['VADE TARİHİ'] ? new Date(r['VADE TARİHİ']) : null;
+      return vade && vade >= now && vade <= in7;
+    });
+  } else if (tab === 'vadegecmis') {
+    filtered = rows.filter(r => {
+      const vade = r['VADE TARİHİ'] ? new Date(r['VADE TARİHİ']) : null;
+      return vade && vade < now;
+    });
+  }
+
+  tableEl.innerHTML = renderCsTable(filtered);
+}
+
+function renderCsTable(rows) {
+  if (!rows.length) return '<div class="empty-state"><p>Bu kriterde kayıt bulunamadı.</p></div>';
+  const header = ['NO','BAYİ','KEŞİDECİ ADI','BANKA','VADE TARİHİ','TUTAR-TL','Bayi Fatura Tutarı','Durum'];
+  let html = `<div class="table-card"><div class="table-card-header"><h3>Çek &amp; Senet Listesi</h3><span class="badge">${rows.length} kayıt</span></div><div class="table-wrap"><table><thead><tr>`;
+  header.forEach(h => html += `<th>${h}</th>`);
+  html += '</tr></thead><tbody>';
+  rows.slice(0,500).forEach(r => {
+    const now = new Date();
+    const vade = r['VADE TARİHİ'] ? new Date(r['VADE TARİHİ']) : null;
+    let durum = '<span class="tag tag-green">Normal</span>';
+    if (vade) {
+      if (vade < now) durum = '<span class="tag tag-red">Vadesi Geçmiş</span>';
+      else if (vade <= new Date(now.getTime()+7*86400000)) durum = '<span class="tag tag-warn">Yaklaşıyor</span>';
+    }
+    if (r['HESAPTAN TAHSİL']) durum = '<span class="tag tag-blue">Tahsil</span>';
+    html += `<tr>
+      <td class="mono">${r['NO']||''}</td>
+      <td>${r['BAYİ']||''}</td>
+      <td>${r['KEŞİDECİ ADI']||''}</td>
+      <td>${r['ÇEK&SENET                 ÇIKILDIĞI BANKA']||r['BANKA ADI']||''}</td>
+      <td class="mono">${r['VADE TARİHİ']||''}</td>
+      <td class="mono">${fmtTL(toNum(r['TUTAR-TL']))}</td>
+      <td class="mono">${fmtTL(toNum(r['Bayi Fatura Tutarı']))}</td>
+      <td>${durum}</td>
+    </tr>`;
+  });
+  html += '</tbody></table></div></div>';
+  return html;
+}
+
+// ========== PROTESTO ==========
+function renderProtesto() {
+  const kpi = document.getElementById('prtKpi');
+  const tableEl = document.getElementById('prtTable');
+  if (!DATA.prt) {
+    kpi.innerHTML = '<div class="empty-state" style="grid-column:span 4"><p>Protesto dosyası yüklenmedi.</p></div>';
+    tableEl.innerHTML = ''; return;
+  }
+  const rows = DATA.prt.prt || [];
+  let toplamTutar=0, toplamOdenen=0, toplamKalan=0;
+  rows.forEach(r => {
+    toplamTutar += toNum(r['SENET TUTARI']);
+    toplamOdenen += toNum(r['ÖDENEN TUTAR']);
+    toplamKalan += toNum(r['KALAN TUTAR']);
+  });
+  kpi.innerHTML = `
+    <div class="kpi-card danger">
+      <div class="kpi-label">Toplam Protesto Tutarı</div>
+      <div class="kpi-value sm">${fmtTL(toplamTutar)}</div>
+      <div class="kpi-sub">${rows.length} adet</div>
+    </div>
+    <div class="kpi-card info">
+      <div class="kpi-label">Ödenen</div>
+      <div class="kpi-value sm">${fmtTL(toplamOdenen)}</div>
+    </div>
+    <div class="kpi-card danger">
+      <div class="kpi-label">Kalan Tutar</div>
+      <div class="kpi-value sm">${fmtTL(toplamKalan)}</div>
+    </div>
+    <div class="kpi-card warn">
+      <div class="kpi-label">Tahsilat Oranı</div>
+      <div class="kpi-value sm">${toplamTutar > 0 ? Math.round(toplamOdenen/toplamTutar*100) : 0}%</div>
+    </div>
+  `;
+
+  if (!rows.length) { tableEl.innerHTML = '<div class="empty-state"><p>Protesto kaydı bulunamadı.</p></div>'; return; }
+  let html = `<div class="table-card"><div class="table-card-header"><h3>Protesto Senetler</h3><span class="badge">${rows.length} kayıt</span></div><div class="table-wrap"><table><thead><tr>
+    <th>NO</th><th>BAYİ</th><th>KEŞİDECİ</th><th>BANKA</th><th>SENET TUTARI</th><th>ÖDENEN</th><th>KALAN</th><th>AKIBETİ</th>
+  </tr></thead><tbody>`;
+  rows.forEach(r => {
+    const akibet = String(r['AKIBETİ']||'');
+    let tag = 'tag-warn';
+    if (akibet.toLowerCase().includes('protesto')) tag = 'tag-red';
+    if (akibet.toLowerCase().includes('öd')) tag = 'tag-green';
+    html += `<tr>
+      <td class="mono">${r['NO']||''}</td>
+      <td>${r['BAYİ']||''}</td>
+      <td>${r['KEŞİDECİ ADI']||''}</td>
+      <td>${r['BANKA ADI']||''}</td>
+      <td class="mono">${fmtTL(toNum(r['SENET TUTARI']))}</td>
+      <td class="mono">${fmtTL(toNum(r['ÖDENEN TUTAR']))}</td>
+      <td class="mono" style="color:var(--danger)">${fmtTL(toNum(r['KALAN TUTAR']))}</td>
+      <td><span class="tag ${tag}">${akibet}</span></td>
+    </tr>`;
+  });
+  html += '</tbody></table></div></div>';
+  tableEl.innerHTML = html;
+}
+
+// ========== YASAL TAKİP ==========
+function renderYasal(tab) {
+  currentYasalTab = tab;
+  const kpi = document.getElementById('yasalKpi');
+  const tableEl = document.getElementById('yasalTable');
+  if (!DATA.prt) {
+    kpi.innerHTML = '<div class="empty-state" style="grid-column:span 4"><p>Yasal Takip dosyası yüklenmedi.</p></div>';
+    tableEl.innerHTML = ''; return;
+  }
+
+  const aktif = (DATA.prt.yasal || []).filter(r => toNum(r['KALAN TUTAR']) > 0);
+  const biten = DATA.prt.yasalBiten || [];
+  const prtOd = DATA.prt.prtOd || [];
+
+  let toplamKalan = 0, toplamTutar = 0;
+  aktif.forEach(r => { toplamKalan += toNum(r['KALAN TUTAR']); toplamTutar += toNum(r['SENET TUTARI']); });
+
+  kpi.innerHTML = `
+    <div class="kpi-card danger">
+      <div class="kpi-label">Aktif Dosya Kalan</div>
+      <div class="kpi-value sm">${fmtTL(toplamKalan)}</div>
+      <div class="kpi-sub">${aktif.length} aktif dosya</div>
+    </div>
+    <div class="kpi-card warn">
+      <div class="kpi-label">Toplam Senet Tutarı</div>
+      <div class="kpi-value sm">${fmtTL(toplamTutar)}</div>
+    </div>
+    <div class="kpi-card info">
+      <div class="kpi-label">Tamamlanan Dosya</div>
+      <div class="kpi-value sm">${fmt(biten.length)}</div>
+    </div>
+    <div class="kpi-card accent">
+      <div class="kpi-label">Protesto-Ödenen</div>
+      <div class="kpi-value sm">${fmt(prtOd.length)}</div>
+    </div>
+  `;
+
+  let rows, cols;
+  if (tab === 'aktif') {
+    rows = aktif;
+    cols = ['SIRA NO','SENET ASLI','BAYİ','BANKA','VADE TARİHİ','SENET TUTARI','ÖDENEN TUTAR','KALAN TUTAR'];
+  } else if (tab === 'biten') {
+    rows = biten;
+    cols = ['SIRA NO','SENET ASLI','BAYİ','BANKA','VADE','SATIŞ FATURA TUTARI','ÖDENEN TUTAR','KALAN TUTAR'];
+  } else {
+    rows = prtOd;
+    cols = ['NO','BAYİ','BANKA ADI','VADE_TARİHİ','SENET TUTARI','ÖDENEN TUTAR','KALAN TUTAR','AKIBETİ'];
+  }
+
+  if (!rows.length) { tableEl.innerHTML = '<div class="empty-state"><p>Kayıt bulunamadı.</p></div>'; return; }
+  let html = `<div class="table-card"><div class="table-card-header"><h3>${tab==='aktif'?'Aktif Yasal Takip':tab==='biten'?'Tamamlanan Dosyalar':'Protesto-Ödenen'}</h3><span class="badge">${rows.length} kayıt</span></div><div class="table-wrap"><table><thead><tr>`;
+  cols.forEach(c => html += `<th>${c}</th>`);
+  html += '</tr></thead><tbody>';
+  rows.slice(0,300).forEach(r => {
+    html += '<tr>' + cols.map(c => {
+      const v = r[c];
+      const num = toNum(v);
+      const isAmt = ['SENET TUTARI','ÖDENED TUTAR','KALAN TUTAR','SATIŞ FATURA TUTARI','ÖDENEN TUTAR'].includes(c);
+      if (isAmt) return `<td class="mono" ${c==='KALAN TUTAR'&&num>0?'style="color:var(--danger)"':''}>${fmtTL(num)}</td>`;
+      return `<td>${v||''}</td>`;
+    }).join('') + '</tr>';
+  });
+  html += '</tbody></table></div></div>';
+  tableEl.innerHTML = html;
+}
+
+// ========== FON ==========
+function renderFon(tab) {
+  currentFonTab = tab;
+  const kpi = document.getElementById('fonKpi');
+  const tableEl = document.getElementById('fonTable');
+  if (!DATA.fon) {
+    kpi.innerHTML = '<div class="empty-state" style="grid-column:span 4"><p>Fon dosyası yüklenmedi.</p></div>';
+    tableEl.innerHTML = ''; return;
+  }
+
+  // Find totals from limitRisk
+  let toplamLimit=0, toplamRisk=0, toplamBossluk=0, toplamBakiye=0;
+  (DATA.fon.limitRisk||[]).forEach(row => {
+    if (!row||!row[0]) return;
+    const lbl = String(row[0]).trim();
+    if (lbl === 'TL TOPLAM ') {
+      toplamBakiye = toNum(row[1]); toplamLimit = toNum(row[2]);
+      toplamRisk = toNum(row[3]); toplamBossluk = toNum(row[5]);
+    }
+  });
+
+  kpi.innerHTML = `
+    <div class="kpi-card info">
+      <div class="kpi-label">Toplam Limit</div>
+      <div class="kpi-value sm">${fmtTL(toplamLimit)}</div>
+    </div>
+    <div class="kpi-card accent">
+      <div class="kpi-label">Kullanılan Risk</div>
+      <div class="kpi-value sm">${fmtTL(toplamRisk)}</div>
+      <div class="kpi-sub">${toplamLimit>0?Math.round(toplamRisk/toplamLimit*100):0}% kullanım</div>
+    </div>
+    <div class="kpi-card warn">
+      <div class="kpi-label">Limit Boşluğu</div>
+      <div class="kpi-value sm">${fmtTL(toplamBossluk)}</div>
+    </div>
+    <div class="kpi-card info">
+      <div class="kpi-label">Toplam Bakiye</div>
+      <div class="kpi-value sm">${fmtTL(toplamBakiye)}</div>
+    </div>
+  `;
+
+  if (tab === 'limitrisk') {
+    let html = `<div class="table-card"><div class="table-card-header"><h3>Banka Limit &amp; Risk Tablosu</h3></div><div class="table-wrap"><table><thead><tr>
+      <th>BANKA</th><th>BAKİYE</th><th>LİMİT</th><th>KULLANILAN RİSK</th><th>GAYRİ NAKİT</th><th>LİMİT BOŞLUĞU</th><th>ÇEK/SENET</th><th>KULLANIM</th>
+    </tr></thead><tbody>`;
+    (DATA.fon.limitRisk||[]).forEach(row => {
+      if (!row||!row[0]) return;
+      const lbl = String(row[0]).trim();
+      if (['PORTFÖY SENET','PORTFÖY ÇEK ','BAYİ ÖDEMESİ YAPILMAYAN ÇEK/SENET'].includes(lbl)) return;
+      const isTotal = lbl === 'TL TOPLAM ';
+      const limit = toNum(row[2]);
+      const risk = toNum(row[3]);
+      const pct = limit > 0 ? Math.round(risk/limit*100) : 0;
+      const barColor = pct > 90 ? 'var(--danger)' : pct > 70 ? 'var(--warn)' : 'var(--accent)';
+      html += `<tr class="${isTotal?'banka-row-total':''}">
+        <td style="${isTotal?'font-weight:600;color:var(--accent)':''}">${lbl}</td>
+        <td class="mono">${fmtTL(toNum(row[1]))}</td>
+        <td class="mono">${limit>0?fmtTL(limit):'—'}</td>
+        <td class="mono">${risk>0?fmtTL(risk):'—'}</td>
+        <td class="mono">${toNum(row[4])>0?fmtTL(toNum(row[4])):'—'}</td>
+        <td class="mono" style="color:var(--accent)">${toNum(row[5])>0?fmtTL(toNum(row[5])):'—'}</td>
+        <td class="mono">${toNum(row[6])>0?fmtTL(toNum(row[6])):'—'}</td>
+        <td style="min-width:100px">
+          ${limit>0?`<div class="limit-bar-wrap"><div style="font-size:10px;color:var(--text3);margin-bottom:3px;font-family:'IBM Plex Mono'">${pct}%</div><div class="limit-bar-bg"><div class="limit-bar-fill" style="width:${Math.min(pct,100)}%;background:${barColor}"></div></div></div>`:'—'}
+        </td>
+      </tr>`;
+    });
+    // Add summary rows
+    const portfolioRows = (DATA.fon.limitRisk||[]).filter(row => {
+      if(!row||!row[0]) return false;
+      const lbl = String(row[0]).trim();
+      return ['PORTFÖY SENET','PORTFÖY ÇEK '].includes(lbl);
+    });
+    portfolioRows.forEach(row => {
+      html += `<tr style="background:rgba(14,165,233,0.04)">
+        <td style="color:var(--accent2)">${String(row[0]).trim()}</td>
+        <td class="mono" colspan="7">${fmtTL(toNum(row[1]))}</td>
+      </tr>`;
+    });
+    html += '</tbody></table></div></div>';
+    tableEl.innerHTML = html;
+
+  } else if (tab === 'bakiye') {
+    const rows = DATA.fon.bakiye || [];
+    let html = `<div class="table-card"><div class="table-card-header"><h3>Banka Bakiyeleri</h3></div><div class="table-wrap"><table><thead><tr>
+      <th>BANKA</th><th>ŞUBE</th><th>DEVİR</th><th>GİRİŞ</th><th>ÇIKIŞ</th><th>BAKİYE</th>
+    </tr></thead><tbody>`;
+    rows.forEach(row => {
+      if (!row) return;
+      const banka = row[2], sube = row[3], devir = row[4], giris = row[5], cikis = row[6], bakiye = row[7];
+      if (!banka || String(banka).trim() === 'BANKA') return;
+      const bak = toNum(bakiye);
+      html += `<tr>
+        <td>${banka||''}</td><td>${sube||''}</td>
+        <td class="mono">${devir?fmtTL(toNum(devir)):'—'}</td>
+        <td class="mono" style="color:var(--green)">${giris?fmtTL(toNum(giris)):'—'}</td>
+        <td class="mono" style="color:var(--danger)">${cikis?fmtTL(toNum(cikis)):'—'}</td>
+        <td class="mono" style="color:${bak>=0?'var(--accent)':'var(--danger)'};font-weight:600">${fmtTL(bak)}</td>
+      </tr>`;
+    });
+    html += '</tbody></table></div></div>';
+    tableEl.innerHTML = html;
+
+  } else if (tab === 'teminat') {
+    const rows = DATA.fon.teminat || [];
+    let html = `<div class="table-card"><div class="table-card-header"><h3>Teminat Mektupları</h3><span class="badge">${rows.length} adet</span></div><div class="table-wrap"><table><thead><tr>
+      <th>NO</th><th>BORÇLU</th><th>TARİH</th><th>BANKA</th><th>REFERANS</th><th>TUTAR</th><th>KOMİSYON</th>
+    </tr></thead><tbody>`;
+    rows.forEach(r => {
+      html += `<tr>
+        <td class="mono">${r[Object.keys(r)[0]]||''}</td>
+        <td>${r['TEMİNAT MEKTUBU BORÇLU AD&SOYAD']||''}</td>
+        <td class="mono">${r['TEMİNAT MEKTUBU TARİHİ']||''}</td>
+        <td>${r['TEMİNAT MEKTUBU ALINAN BANKA']||''}</td>
+        <td class="mono" style="font-size:11px">${r['TEMİNAT MEKTUP REFERANSI']||''}</td>
+        <td class="mono">${fmtTL(toNum(r['TEMİNAT MEKTUBU TUTARI']))}</td>
+        <td class="mono">${fmtTL(toNum(r['GSD KOMİSYON ÖDEMESİ']))}</td>
+      </tr>`;
+    });
+    html += '</tbody></table></div></div>';
+    tableEl.innerHTML = html;
+  }
+}
+
+// ========== HAFTALIK ==========
+function renderHaftalik() {
+  const el = document.getElementById('haftalikContent');
+  const thisKey = getWeekKey();
+  const prevKey = getPrevWeekKey();
+  const thisSnap = safeGetSnap(thisKey);
+  const prevSnap = safeGetSnap(prevKey);
+
+  if (!thisSnap && !prevSnap) {
+    el.innerHTML = `
+      <div class="empty-state">
+        <div class="icon">📅</div>
+        <p>Henüz haftalık snapshot kaydedilmedi.</p>
+        <p style="margin-top:8px">Excel yükleme sekmesinden "Snapshot Kaydet" butonuna tıklayın.</p>
+      </div>`;
+    return;
+  }
+
+  const cur = thisSnap ? thisSnap.metrics : buildMetrics();
+  const prev = prevSnap ? prevSnap.metrics : null;
+
+  function diffRow(label, curVal, prevVal, isTL=true, lowerIsBetter=false) {
+    const fmtV = v => isTL ? fmtTL(v) : fmt(v);
+    let diffHtml = '';
+    if (prevVal !== null && prevVal !== undefined) {
+      const diff = curVal - prevVal;
+      const pct = prevVal !== 0 ? Math.round(diff/prevVal*100) : 0;
+      const isGood = lowerIsBetter ? diff <= 0 : diff >= 0;
+      const cls = diff === 0 ? 'diff-neutral' : (isGood ? 'diff-down' : 'diff-up');
+      const sign = diff >= 0 ? '+' : '';
+      diffHtml = `<span class="compare-diff ${cls}">${sign}${isTL?fmtTL(Math.abs(diff)):fmt(Math.abs(diff))} (${sign}${pct}%)</span>`;
+    }
+    return `<div class="compare-row">
+      <div class="compare-label">${label}</div>
+      <div class="compare-vals">
+        ${prev ? `<div class="compare-val old">${fmtV(prev ? (prevVal||0) : 0)}</div>` : ''}
+        <div class="compare-val new">${fmtV(curVal||0)}</div>
+        ${diffHtml}
+      </div>
+    </div>`;
+  }
+
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px">
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;margin-bottom:4px">Bu Hafta</div>
+        <div style="font-size:13px;color:var(--accent)">${thisSnap ? new Date(thisSnap.ts).toLocaleDateString('tr-TR') : 'Anlık veri'}</div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px">
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;margin-bottom:4px">Önceki Hafta</div>
+        <div style="font-size:13px;color:${prevSnap?'var(--text2)':'var(--text3)'}">${prevSnap ? new Date(prevSnap.ts).toLocaleDateString('tr-TR') : 'Snapshot bulunamadı'}</div>
+      </div>
+    </div>
+    <div class="compare-grid">
+      <div class="compare-card">
+        <h3>Çek / Senet Portföyü</h3>
+        ${diffRow('Toplam Portföy', cur.csGuncelTutar, prev?.csGuncelTutar)}
+        ${diffRow('Adet', cur.csGuncelCount, prev?.csGuncelCount, false)}
+        ${diffRow('Vadesi Geçmiş', cur.csVadeGeçmiş, prev?.csVadeGeçmiş, true, true)}
+        ${diffRow('Vadesi Yaklaşan', cur.csVadeYaklaşan, prev?.csVadeYaklaşan, true, true)}
+      </div>
+      <div class="compare-card">
+        <h3>Protesto &amp; Yasal Takip</h3>
+        ${diffRow('Protesto Kalan', cur.prtKalan, prev?.prtKalan, true, true)}
+        ${diffRow('Protesto Adet', cur.prtCount, prev?.prtCount, false, true)}
+        ${diffRow('Yasal Takip Kalan', cur.yasalKalan, prev?.yasalKalan, true, true)}
+        ${diffRow('Yasal Aktif Dosya', cur.yasalCount, prev?.yasalCount, false, true)}
+      </div>
+      <div class="compare-card">
+        <h3>Fon Durumu</h3>
+        ${diffRow('Toplam Limit', cur.toplamLimit, prev?.toplamLimit)}
+        ${diffRow('Kullanılan Risk', cur.toplamRisk, prev?.toplamRisk, true, true)}
+        ${diffRow('Limit Boşluğu', cur.toplamBossluk, prev?.toplamBossluk)}
+        ${diffRow('Banka Bakiye', cur.toplamBakiye, prev?.toplamBakiye)}
+      </div>
+      <div class="compare-card">
+        <h3>Genel Risk Özeti</h3>
+        ${diffRow('Toplam Sorunlu Tutar', (cur.prtKalan||0)+(cur.yasalKalan||0), prev?(prev.prtKalan||0)+(prev.yasalKalan||0):null, true, true)}
+        ${diffRow('Portföy / Risk Oranı', cur.csGuncelTutar>0?Math.round((cur.prtKalan+cur.yasalKalan)/cur.csGuncelTutar*100):0, prev&&prev.csGuncelTutar>0?Math.round((prev.prtKalan+prev.yasalKalan)/prev.csGuncelTutar*100):null, false, true)}
+      </div>
+    </div>
+    <p style="font-size:11px;color:var(--text3);margin-top:8px">🟢 Yeşil = İyileşme &nbsp; 🔴 Kırmızı = Kötüleşme &nbsp; Yön, tutarın düşmesinin/artmasının olumlu/olumsuz etkisine göre belirlenir.</p>
+  `;
+}
+
+function safeGetSnap(key) {
+  try {
+    const raw = localStorage.getItem('fa_snap_' + key);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+
+// ========== NAV ==========
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  event.currentTarget.classList.add('active');
+}
+
+function showSubTab(section, tab) {
+  const container = document.getElementById('page-'+
+    (section==='cs'?'ceksenet':section==='yasal'?'yasal':section==='fon'?'fon':''));
+  if (!container) return;
+  container.querySelectorAll('.sub-tab').forEach(t => t.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  if (section === 'cs') renderCeksenet(tab);
+  else if (section === 'yasal') renderYasal(tab);
+  else if (section === 'fon') renderFon(tab);
+}
+
+// Auto-login if session active
+if (sessionStorage.getItem('fa_auth')) {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  initApp();
+}
+</script>
+</body>
+</html>
